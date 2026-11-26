@@ -9,7 +9,7 @@ resources:
   - database.yaml
   - oidc.sops.yaml
   - session.sops.yaml
-  # Profile pictures (milestone 5); nothing reads it yet.
+  # Profile pictures.
   - s3-key.sops.yaml
   - hub.yaml
 components:

@@ -25,7 +25,7 @@ spec:
         seccompProfile: { type: RuntimeDefault }
       containers:
         - name: hub
-          image: ghcr.io/jurrebuunk/buunk-hub:0.5.0@sha256:fe494a431ac4b036bd92fc173b8d8077b054e7290f51d263fd61ffff8be98657
+          image: ghcr.io/jurrebuunk/buunk-hub:0.6.0@sha256:38926066392381944caaf168a6778e7fc2648404e667697be15ecc9dd5c0f62d
           ports: [{ name: http, containerPort: 8080 }]
           env:
             - { name: HUB_PUBLIC_URL, value: https://hub.buunk.org }
@@ -38,6 +38,17 @@ spec:
               valueFrom: { secretKeyRef: { name: hub-oidc, key: client-secret } }
             - name: HUB_SESSION_KEY
               valueFrom: { secretKeyRef: { name: hub-session, key: session-key } }
+            # Pictures: the bucket hub-avatars, and Keycloak's admin API
+            # inside the cluster (/admin is not public).
+            - name: HUB_S3_ENDPOINT
+              valueFrom: { secretKeyRef: { name: hub-s3, key: endpoint } }
+            - name: HUB_S3_BUCKET
+              valueFrom: { secretKeyRef: { name: hub-s3, key: bucket } }
+            - name: HUB_S3_ACCESS_KEY
+              valueFrom: { secretKeyRef: { name: hub-s3, key: access-key } }
+            - name: HUB_S3_SECRET_KEY
+              valueFrom: { secretKeyRef: { name: hub-s3, key: secret-key } }
+            - { name: HUB_KEYCLOAK_ADMIN_URL, value: "http://keycloak-service.keycloak.svc.cluster.local:8080/admin/realms/hgd1" }
             # Go keeps its heap under the limit instead of being killed.
             - { name: GOMEMLIMIT, value: 100MiB }
           readinessProbe:
