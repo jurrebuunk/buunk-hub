@@ -25,7 +25,7 @@ spec:
         seccompProfile: { type: RuntimeDefault }
       containers:
         - name: hub
-          image: ghcr.io/jurrebuunk/buunk-hub:0.4.1@sha256:b244c184b9d3b892b99fde630876dacc4e8edd01dbbf3ae3b96acb245d6e2317
+          image: ghcr.io/jurrebuunk/buunk-hub:0.5.0@sha256:fe494a431ac4b036bd92fc173b8d8077b054e7290f51d263fd61ffff8be98657
           ports: [{ name: http, containerPort: 8080 }]
           env:
             - { name: HUB_PUBLIC_URL, value: https://hub.buunk.org }
