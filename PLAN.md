@@ -92,7 +92,7 @@ Made up front so work can start; change one here first if it turns out wrong.
       zone spread, requests/limits, `prometheus.io` annotations if it has
       metrics), Service, sops Secrets (OIDC client secret, session key, S3
       key), components `postgres`, `egress/default`, `egress/s3`.
-- [ ] In `hgd1-k8s` (see AGENTS.md, *Changes outside this repo*):
+- [x] In `hgd1-k8s` (see AGENTS.md, *Changes outside this repo*):
       `apps/hub.yaml` (copy `apps/cloudreve.yaml`), client `hub` in
       `platform/keycloak-realm/hgd1.yaml` (like `dev/realm.json`: optional
       scope `offline_access`, all client roles in the ID token as
@@ -148,6 +148,12 @@ Made up front so work can start; change one here first if it turns out wrong.
       (test).
 
 ### Later
+
+- Password and second factor in the hub (Settings). Keycloak's account
+  console is gone: `auth.buunk.org/` and `/realms/hgd1/account…` redirect to
+  the hub (hgd1-k8s `3b30ba4`), so until then people change a password only
+  through *Forgot password?* on the sign-in page, and nobody can add a second
+  factor themselves.
 
 - Cloudreve shows the `picture` as its avatar: a patch in
   [hgd1-cloudreve#2](https://github.com/jurrebuunk/hgd1-cloudreve/issues/2),
