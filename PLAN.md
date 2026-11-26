@@ -157,7 +157,8 @@ Made up front so work can start; change one here first if it turns out wrong.
   through *Forgot password?* on the sign-in page, and nobody can add a second
   factor themselves.
 
-- Cloudreve shows the `picture` as its avatar: a patch in
-  [hgd1-cloudreve#2](https://github.com/jurrebuunk/hgd1-cloudreve/issues/2),
-  after milestone 5.
+- ~~Cloudreve shows the `picture` as its avatar~~: done in
+  [hgd1-cloudreve#2](https://github.com/jurrebuunk/hgd1-cloudreve/issues/2)
+  (image `4.19.1-oidc.2`): the picture becomes the avatar at each sign-in,
+  and Cloudreve's avatar URL redirects to it.
 - More apps in the catalogue as they are published.
