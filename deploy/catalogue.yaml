@@ -1,0 +1,28 @@
+# The apps on Home, the same for everyone: each is shown to whoever has one
+# of its roles ("client/role", Keycloak client roles from the hgd1 realm in
+# hgd1-k8s). internal: true is for apps only reachable over WARP; Home
+# checks from the browser whether they can be reached right now.
+# Icons are Material Symbols names (fonts.google.com/icons, Rounded).
+# A mistake here stops the hub from starting; `go test ./internal/catalogue`
+# checks this file.
+apps:
+  - id: cloudreve
+    name: Cloudreve
+    url: https://cloudreve.buunk.org
+    icon: cloud
+    description:
+      en: Your files, photos and shared folders.
+      nl: Je bestanden, foto's en gedeelde mappen.
+    roles: [cloudreve/cloudreve-user, cloudreve/cloudreve-admin]
+
+  # The test app for internal access (hgd1-k8s platform/whoami). Everyone
+  # who may connect WARP sees it.
+  - id: whoami
+    name: whoami
+    url: https://whoami.buunk.org
+    icon: badge
+    description:
+      en: Shows what the cluster sees of your request.
+      nl: Laat zien wat het cluster van je verzoek ziet.
+    roles: [cloudflare-zero-trust/warp]
+    internal: true

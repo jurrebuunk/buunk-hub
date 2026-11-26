@@ -8,7 +8,18 @@ import (
 	"testing/fstest"
 
 	"github.com/jurrebuunk/buunk-hub/internal/auth"
+	"github.com/jurrebuunk/buunk-hub/internal/catalogue"
+	"github.com/jurrebuunk/buunk-hub/internal/i18n"
 )
+
+var testApps = []catalogue.App{
+	{ID: "files", Name: "Files", URL: "https://files.example.test", Icon: "cloud",
+		Description: map[i18n.Lang]string{i18n.EN: "Files.", i18n.NL: "Bestanden."},
+		Roles:       []string{"files/user"}},
+	{ID: "lab", Name: "Lab", URL: "https://lab.example.test", Icon: "terminal",
+		Description: map[i18n.Lang]string{i18n.EN: "Lab.", i18n.NL: "Lab."},
+		Roles:       []string{"warp/warp"}, Internal: true},
+}
 
 var frontend = fstest.MapFS{
 	"index.html":      {Data: []byte("<!doctype html>app")},
@@ -27,7 +38,8 @@ func (f fakeAuth) Require(next http.Handler) http.Handler {
 			http.Error(w, "signed out", http.StatusUnauthorized)
 			return
 		}
-		id := auth.Identity{User: auth.User{Sub: "u1", Name: "Ann", Locale: "nl"}}
+		id := auth.Identity{User: auth.User{Sub: "u1", Name: "Ann", Locale: "nl"},
+			Roles: auth.Roles{"files": {"user"}, "other": {"warp"}}}
 		next.ServeHTTP(w, r.WithContext(auth.WithIdentity(r.Context(), id)))
 	})
 }
@@ -40,15 +52,15 @@ func get(t *testing.T, h http.Handler, target string) *httptest.ResponseRecorder
 }
 
 func TestHealthz(t *testing.T) {
-	rec := get(t, New(fakeAuth{}, frontend), "/healthz")
+	rec := get(t, New(fakeAuth{}, testApps, frontend), "/healthz")
 	if rec.Code != http.StatusOK || rec.Body.String() != "ok\n" {
 		t.Errorf("got %d %q", rec.Code, rec.Body.String())
 	}
 }
 
 func TestSignedOut(t *testing.T) {
-	h := New(fakeAuth{}, frontend)
-	for _, p := range []string{"/", "/settings", "/assets/app-1.js", "/api/me", "/api/nothing"} {
+	h := New(fakeAuth{}, testApps, frontend)
+	for _, p := range []string{"/", "/settings", "/assets/app-1.js", "/api/me", "/api/apps", "/api/nothing"} {
 		if rec := get(t, h, p); rec.Code != http.StatusUnauthorized {
 			t.Errorf("%s: code %d, want 401", p, rec.Code)
 		}
@@ -56,7 +68,7 @@ func TestSignedOut(t *testing.T) {
 }
 
 func TestFrontend(t *testing.T) {
-	h := New(fakeAuth{signedIn: true}, frontend)
+	h := New(fakeAuth{signedIn: true}, testApps, frontend)
 	for _, tc := range []struct {
 		path, body, cache string
 		code              int
@@ -86,7 +98,7 @@ func TestFrontend(t *testing.T) {
 }
 
 func TestMe(t *testing.T) {
-	rec := get(t, New(fakeAuth{signedIn: true}, frontend), "/api/me")
+	rec := get(t, New(fakeAuth{signedIn: true}, testApps, frontend), "/api/me")
 	var got map[string]string
 	if err := json.NewDecoder(rec.Body).Decode(&got); err != nil {
 		t.Fatal(err)
@@ -97,15 +109,27 @@ func TestMe(t *testing.T) {
 }
 
 func TestNotBuilt(t *testing.T) {
-	if rec := get(t, New(fakeAuth{signedIn: true}, fstest.MapFS{}), "/"); rec.Code != http.StatusServiceUnavailable {
+	if rec := get(t, New(fakeAuth{signedIn: true}, testApps, fstest.MapFS{}), "/"); rec.Code != http.StatusServiceUnavailable {
 		t.Errorf("code %d, want 503", rec.Code)
 	}
 }
 
 func TestOnlyGet(t *testing.T) {
 	rec := httptest.NewRecorder()
-	New(fakeAuth{signedIn: true}, frontend).ServeHTTP(rec, httptest.NewRequest(http.MethodPost, "/", nil))
+	New(fakeAuth{signedIn: true}, testApps, frontend).ServeHTTP(rec, httptest.NewRequest(http.MethodPost, "/", nil))
 	if rec.Code != http.StatusMethodNotAllowed {
 		t.Errorf("POST /: code %d, want 405", rec.Code)
+	}
+}
+
+// Only apps the person has a role for, described in their language.
+func TestApps(t *testing.T) {
+	rec := get(t, New(fakeAuth{signedIn: true}, testApps, frontend), "/api/apps")
+	var got []map[string]any
+	if err := json.NewDecoder(rec.Body).Decode(&got); err != nil {
+		t.Fatal(err)
+	}
+	if len(got) != 1 || got[0]["id"] != "files" || got[0]["description"] != "Bestanden." || got[0]["internal"] != false {
+		t.Errorf("got %v", got)
 	}
 }

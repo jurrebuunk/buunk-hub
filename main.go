@@ -14,6 +14,7 @@ import (
 	"time"
 
 	"github.com/jurrebuunk/buunk-hub/internal/auth"
+	"github.com/jurrebuunk/buunk-hub/internal/catalogue"
 	"github.com/jurrebuunk/buunk-hub/internal/config"
 	"github.com/jurrebuunk/buunk-hub/internal/db"
 	"github.com/jurrebuunk/buunk-hub/internal/server"
@@ -39,6 +40,10 @@ func run(log *slog.Logger) error {
 	ctx, stop := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM)
 	defer stop()
 
+	apps, err := catalogue.Load(cfg.Catalogue)
+	if err != nil {
+		return err
+	}
 	pool, err := db.Open(ctx, cfg.DatabaseURL)
 	if err != nil {
 		return fmt.Errorf("database: %w", err)
@@ -60,7 +65,7 @@ func run(log *slog.Logger) error {
 
 	srv := &http.Server{
 		Addr:              cfg.Addr,
-		Handler:           server.New(a, web.Dist()),
+		Handler:           server.New(a, apps, web.Dist()),
 		ReadHeaderTimeout: 10 * time.Second,
 		IdleTimeout:       2 * time.Minute,
 	}

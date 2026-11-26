@@ -9,8 +9,10 @@ accounts and passwords live.
 It runs on the [hgd1 cluster](https://github.com/jurrebuunk/hgd1-k8s) and is
 deployed by Flux from this repo's `deploy/`.
 
-**Status:** milestone 2 (sign-in, locally) of [PLAN.md](PLAN.md); agents
-start with [AGENTS.md](AGENTS.md).
+**Status:** milestones 3 (on the cluster) and 4 (Home) of [PLAN.md](PLAN.md);
+agents start with [AGENTS.md](AGENTS.md). The designs the pages follow are
+the flatwork-saas mock-ups of the whole hub (Home, the WARP guide, and the
+pages still to come).
 
 ## Develop
 
@@ -70,11 +72,22 @@ Environment variables only; `dev/hub.env` has values for development.
 | `HUB_ADDR` | `:8080` | Where the HTTP server listens, `host:port` |
 | `HUB_PUBLIC_URL` | required | The hub's address, `https://hub.buunk.org`: the OIDC redirect, the Origin check and `__Host-`/`Secure` cookies (for `https`) come from it |
 | `HUB_DATABASE_URL` | required | Postgres connection string |
+| `HUB_CATALOGUE` | `/etc/hub/catalogue.yaml` | The apps on Home ([`deploy/catalogue.yaml`](deploy/catalogue.yaml)) |
 | `HUB_OIDC_ISSUER` | required | `https://auth.buunk.org/realms/hgd1` |
 | `HUB_OIDC_CLIENT_ID` | `hub` | The Keycloak client |
 | `HUB_OIDC_CLIENT_SECRET` | required | Its secret |
 | `HUB_SESSION_KEY` | required | 32 random bytes, base64 (`openssl rand -base64 32`); seals the sign-in cookie and the stored tokens. Changing it signs everyone out |
 
 The database schema is migrated at start (`internal/db/migrations`).
+
+## Home and the catalogue
+
+Home shows the apps in `deploy/catalogue.yaml` whose role is among the
+person's client roles. Adding an app is an entry there (`go test
+./internal/catalogue` checks the file; a broken one stops the hub from
+starting). Apps with `internal: true` are behind WARP: the browser fetches
+each one's `/` (`no-cors`, 1.5 s) and shows it as *Needs WARP* when that
+fails, with a link to the WARP guide at `/warp`. Nothing about that check
+reaches the hub.
 
 `GET /healthz` answers `ok` without signing in, for Kubernetes probes.

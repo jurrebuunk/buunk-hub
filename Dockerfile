@@ -26,6 +26,7 @@ FROM gcr.io/distroless/static-debian13:nonroot@sha256:8ce6dd87e9823c5b48dcfb2c86
 LABEL org.opencontainers.image.source="https://github.com/jurrebuunk/buunk-hub" \
       org.opencontainers.image.description="buunk-hub, the people hub for buunk.org"
 COPY --from=go /hub /hub
-USER nonroot:nonroot
+# Numeric, so Kubernetes can check runAsNonRoot (distroless nonroot).
+USER 65532:65532
 EXPOSE 8080
 ENTRYPOINT ["/hub"]

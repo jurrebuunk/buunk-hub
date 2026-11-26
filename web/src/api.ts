@@ -9,6 +9,15 @@ export interface Me {
   lang: string;
 }
 
+export interface App {
+  id: string;
+  name: string;
+  url: string;
+  icon: string;
+  description: string;
+  internal: boolean;
+}
+
 /** Sends the browser to sign in, then back to where it is now. */
 export function signIn(): never {
   const next = location.pathname + location.search;

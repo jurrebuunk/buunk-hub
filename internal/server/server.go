@@ -11,6 +11,7 @@ import (
 	"strings"
 
 	"github.com/jurrebuunk/buunk-hub/internal/auth"
+	"github.com/jurrebuunk/buunk-hub/internal/catalogue"
 	"github.com/jurrebuunk/buunk-hub/internal/i18n"
 )
 
@@ -21,9 +22,10 @@ type Auth interface {
 	CheckOrigin(next http.Handler) http.Handler
 }
 
-// New returns the hub's handler. frontend is the built web app (web.Dist()).
-// Everything is behind sign-in except /healthz and /auth/.
-func New(a Auth, frontend fs.FS) http.Handler {
+// New returns the hub's handler. apps is the catalogue, frontend the built
+// web app (web.Dist()). Everything is behind sign-in except /healthz and
+// /auth/.
+func New(a Auth, apps []catalogue.App, frontend fs.FS) http.Handler {
 	mux := http.NewServeMux()
 	// No auth: Kubernetes probes this.
 	mux.HandleFunc("GET /healthz", func(w http.ResponseWriter, _ *http.Request) {
@@ -32,6 +34,7 @@ func New(a Auth, frontend fs.FS) http.Handler {
 	})
 	a.Routes(mux)
 	mux.Handle("GET /api/me", a.Require(http.HandlerFunc(me)))
+	mux.Handle("GET /api/apps", a.Require(appsHandler(apps)))
 	mux.Handle("GET /api/", a.Require(http.NotFoundHandler()))
 	mux.Handle("GET /", a.Require(spa(frontend)))
 	return securityHeaders(a.CheckOrigin(mux))
@@ -46,6 +49,30 @@ func me(w http.ResponseWriter, r *http.Request) {
 		"email":   id.User.Email,
 		"picture": id.User.Picture,
 		"lang":    i18n.Pick(id.User.Locale, r.Header.Get("Accept-Language")),
+	})
+}
+
+// appsHandler lists the catalogue apps the person has a role for, in their
+// language. Nothing personal: the same app looks the same for everyone.
+func appsHandler(apps []catalogue.App) http.Handler {
+	type app struct {
+		ID          string `json:"id"`
+		Name        string `json:"name"`
+		URL         string `json:"url"`
+		Icon        string `json:"icon"`
+		Description string `json:"description"`
+		Internal    bool   `json:"internal"`
+	}
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		id, _ := auth.FromContext(r.Context())
+		lang := i18n.Pick(id.User.Locale, r.Header.Get("Accept-Language"))
+		out := []app{}
+		for _, a := range apps {
+			if a.VisibleTo(id.Roles) {
+				out = append(out, app{a.ID, a.Name, a.URL, a.Icon, a.Description[lang], a.Internal})
+			}
+		}
+		writeJSON(w, out)
 	})
 }
 

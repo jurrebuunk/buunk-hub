@@ -20,6 +20,8 @@ type Config struct {
 	PublicURL *url.URL
 	// DatabaseURL is a Postgres connection string.
 	DatabaseURL string
+	// Catalogue is the path of the apps list (deploy/catalogue.yaml).
+	Catalogue string
 
 	OIDCIssuer       string
 	OIDCClientID     string
@@ -54,6 +56,7 @@ func load(lookup func(string) (string, bool)) (Config, error) {
 	c := Config{
 		Addr:             get("HUB_ADDR", ":8080"),
 		DatabaseURL:      required("HUB_DATABASE_URL"),
+		Catalogue:        get("HUB_CATALOGUE", "/etc/hub/catalogue.yaml"),
 		OIDCIssuer:       required("HUB_OIDC_ISSUER"),
 		OIDCClientID:     get("HUB_OIDC_CLIENT_ID", "hub"),
 		OIDCClientSecret: required("HUB_OIDC_CLIENT_SECRET"),

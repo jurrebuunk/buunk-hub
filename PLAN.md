@@ -107,9 +107,9 @@ Made up front so work can start; change one here first if it turns out wrong.
 
 ### 4. Home
 
-- [ ] `deploy/catalogue.yaml` with Cloudreve (role `cloudreve/cloudreve-user`
+- [x] `deploy/catalogue.yaml` with Cloudreve (role `cloudreve/cloudreve-user`
       or `cloudreve-admin`) and the test app `whoami.buunk.org` (internal).
-- [ ] Home lists the apps whose role is in the person's token
+- [x] Home lists the apps whose role is in the person's token
       (`resource_access.<client>.roles`), as cards; the WARP check for
       internal ones.
 - [ ] Done when: the owner sees Cloudreve; a `friends` test user sees only

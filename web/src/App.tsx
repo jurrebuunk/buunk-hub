@@ -1,18 +1,24 @@
 import { useEffect, useState } from "react";
-import { Avatar, Brand, Button, EmptyState, FlatworkRoot, Icon, Spinner, TopNav } from "@flatwork-ui/react";
-import { getJSON, type Me } from "./api";
+import { Button, EmptyState, FlatworkRoot, Icon, Spinner } from "@flatwork-ui/react";
+import { getJSON, type App as HubApp, type Me } from "./api";
+import { Home } from "./Home";
 import { isLang, pickLang, t, type Lang } from "./i18n";
+import { usePath } from "./router";
+import { Shell } from "./Shell";
+import { WarpGuide } from "./WarpGuide";
+import { useReach } from "./warp";
 
-type State = { kind: "loading" } | { kind: "failed" } | { kind: "ready"; me: Me };
+type State = { kind: "loading" } | { kind: "failed" } | { kind: "ready"; me: Me; apps: HubApp[] };
 
 export function App() {
   const [state, setState] = useState<State>({ kind: "loading" });
   const [attempt, setAttempt] = useState(0);
+  const path = usePath();
 
   useEffect(() => {
     let cancelled = false;
-    getJSON<Me>("/api/me").then(
-      (me) => !cancelled && setState({ kind: "ready", me }),
+    Promise.all([getJSON<Me>("/api/me"), getJSON<HubApp[]>("/api/apps")]).then(
+      ([me, apps]) => !cancelled && setState({ kind: "ready", me, apps }),
       () => !cancelled && setState({ kind: "failed" }),
     );
     return () => {
@@ -20,26 +26,26 @@ export function App() {
     };
   }, [attempt]);
 
+  const apps = state.kind === "ready" ? state.apps : undefined;
+  const { reach, recheck } = useReach(apps);
+
   const lang: Lang = state.kind === "ready" && isLang(state.me.lang) ? state.me.lang : pickLang(navigator.languages);
   const m = t(lang);
+  const pageTitle = path === "/warp" ? m.guideTitle : m.home;
   useEffect(() => {
     document.documentElement.lang = lang;
-    document.title = m.title;
-  }, [lang, m]);
+    document.title = `${pageTitle} · ${m.title}`;
+  }, [lang, m, pageTitle]);
 
   return (
-    <FlatworkRoot mode="system" style={{ minHeight: "100vh", display: "flex", flexDirection: "column" }}>
-      <TopNav
-        brand={
-          <Brand href="/" mark="b">
-            {m.title}
-          </Brand>
-        }
-        end={state.kind === "ready" && <Account me={state.me} signOut={m.signOut} />}
-      />
-      <main style={{ flex: 1, display: "grid", placeItems: "center", padding: 16 }}>
-        {state.kind === "loading" && <Spinner size="lg" label={m.loading} />}
-        {state.kind === "failed" && (
+    <FlatworkRoot mode="system" style={{ minHeight: "100vh" }}>
+      {state.kind === "loading" && (
+        <div style={{ minHeight: "100vh", display: "grid", placeItems: "center" }}>
+          <Spinner size="lg" label={m.loading} />
+        </div>
+      )}
+      {state.kind === "failed" && (
+        <main style={{ minHeight: "100vh", display: "grid", placeItems: "center", padding: 16 }}>
           <EmptyState
             icon={<Icon name="cloud_off" />}
             title={m.loadFailed}
@@ -54,41 +60,17 @@ export function App() {
               </Button>
             }
           />
-        )}
-        {state.kind === "ready" && (
-          <div style={{ display: "grid", gap: 16, justifyItems: "center" }}>
-            <h1 className="fw-t-title">{m.welcome(state.me.name)}</h1>
-            <EmptyState icon={<Icon name="construction" />} title={m.comingSoon} description={m.comingSoonText} />
-          </div>
-        )}
-      </main>
+        </main>
+      )}
+      {state.kind === "ready" && (
+        <Shell me={state.me} m={m} path={path}>
+          {path === "/warp" ? (
+            <WarpGuide m={m} apps={state.apps} reach={reach} recheck={recheck} />
+          ) : (
+            <Home me={state.me} m={m} apps={state.apps} reach={reach} />
+          )}
+        </Shell>
+      )}
     </FlatworkRoot>
-  );
-}
-
-function initials(name: string): string {
-  return name
-    .split(/\s+/)
-    .filter(Boolean)
-    .slice(0, 2)
-    .map((w) => w[0]!.toUpperCase())
-    .join("");
-}
-
-function Account({ me, signOut }: { me: Me; signOut: string }) {
-  return (
-    <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-      <Avatar size="sm" aria-hidden="true">
-        {me.picture ? <img src={me.picture} alt="" /> : initials(me.name || me.email)}
-      </Avatar>
-      <span>{me.name}</span>
-      {/* A plain form: the browser sends Origin with it, which the server
-          checks, and the logout redirect to Keycloak just happens. */}
-      <form method="post" action="/auth/logout">
-        <Button type="submit" size="sm" leadingIcon={<Icon name="logout" />}>
-          {signOut}
-        </Button>
-      </form>
-    </div>
   );
 }
