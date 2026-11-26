@@ -1,5 +1,6 @@
-import { Badge, Icon, Spinner, type IconName } from "@flatwork-ui/react";
+import { Badge, Icon, Spinner } from "@flatwork-ui/react";
 import type { App, Me } from "./api";
+import { AppIcon } from "./AppIcon";
 import { CloudflareLogo, cloudflareOrange, cloudflareTint } from "./cloudflare";
 import { joinNames, type Messages } from "./i18n";
 import { Link } from "./router";
@@ -8,14 +9,6 @@ import type { Reach } from "./warp";
 
 // Home (design: Main.dc.html): every app the person has a role for. Apps
 // behind WARP show as locked until this browser can reach them.
-
-const tile = {
-  display: "grid",
-  placeContent: "center",
-  width: 56,
-  height: 56,
-  borderRadius: "var(--fw-r-md)",
-} as const;
 
 export function Home({ me, m, apps, reach }: { me: Me; m: Messages; apps: App[]; reach: Record<string, Reach> }) {
   const internal = apps.filter((a) => a.internal);
@@ -52,12 +45,7 @@ export function Home({ me, m, apps, reach }: { me: Me; m: Messages; apps: App[];
             background: cloudflareTint,
           }}
         >
-          <span
-            aria-hidden="true"
-            style={{ ...tile, width: 48, height: 48, background: "var(--fw-surface)", border: `1px solid ${cloudflareOrange}` }}
-          >
-            <CloudflareLogo size={30} />
-          </span>
+          <CloudflareLogo size={56} />
           <div style={{ flex: "1 1 280px", minWidth: 0, display: "flex", flexDirection: "column", gap: 2 }}>
             <div style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
               <h2 className="fw-t-heading" id="warp-title">
@@ -124,7 +112,6 @@ const card = {
 } as const;
 
 function AppCard({ app, reach, m }: { app: App; reach: Reach; m: Messages }) {
-  const icon = app.icon as IconName;
   if (reach === "ok") {
     return (
       <a
@@ -139,12 +126,7 @@ function AppCard({ app, reach, m }: { app: App; reach: Reach; m: Messages }) {
         }}
       >
         <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 12 }}>
-          <span
-            aria-hidden="true"
-            style={{ ...tile, background: "var(--fw-surface-2)", border: "1px solid var(--fw-border-strong)", color: "var(--fw-accent)" }}
-          >
-            <Icon name={icon} size={30} />
-          </span>
+          <AppIcon app={app} size={44} />
           <Badge tone="success" dot>
             {m.ready}
           </Badge>
@@ -181,35 +163,7 @@ function AppCard({ app, reach, m }: { app: App; reach: Reach; m: Messages }) {
   return (
     <div style={{ ...card, border: "1px dashed var(--fw-border-strong)", background: "var(--fw-bg)" }}>
       <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 12 }}>
-        <span
-          aria-hidden="true"
-          style={{
-            ...tile,
-            position: "relative",
-            background: "var(--fw-surface)",
-            border: "1px solid var(--fw-border)",
-            color: "var(--fw-muted)",
-          }}
-        >
-          <Icon name={icon} size={30} />
-          <span
-            style={{
-              position: "absolute",
-              right: -8,
-              bottom: -8,
-              display: "grid",
-              placeContent: "center",
-              width: 26,
-              height: 26,
-              borderRadius: "50%",
-              background: cloudflareTint,
-              border: `1px solid ${cloudflareOrange}`,
-              color: "var(--fw-heading)",
-            }}
-          >
-            <Icon name="lock" size={15} />
-          </span>
-        </span>
+        <AppIcon app={app} size={44} dimmed />
         {reach === "checking" ? (
           <Badge>
             <Spinner /> {m.checking}
@@ -217,7 +171,7 @@ function AppCard({ app, reach, m }: { app: App; reach: Reach; m: Messages }) {
         ) : (
           <Badge style={{ borderColor: cloudflareOrange }}>
             <CloudflareLogo size={14} />
-            {m.needsWarp}
+            {m.lockedNeedsWarp}
           </Badge>
         )}
       </div>

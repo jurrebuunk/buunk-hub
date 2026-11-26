@@ -17,6 +17,7 @@ import (
 	"github.com/jurrebuunk/buunk-hub/internal/catalogue"
 	"github.com/jurrebuunk/buunk-hub/internal/config"
 	"github.com/jurrebuunk/buunk-hub/internal/db"
+	"github.com/jurrebuunk/buunk-hub/internal/favicon"
 	"github.com/jurrebuunk/buunk-hub/internal/server"
 	"github.com/jurrebuunk/buunk-hub/web"
 )
@@ -65,7 +66,7 @@ func run(log *slog.Logger) error {
 
 	srv := &http.Server{
 		Addr:              cfg.Addr,
-		Handler:           server.New(a, apps, web.Dist()),
+		Handler:           server.New(a, apps, favicon.NewCache(log), web.Dist()),
 		ReadHeaderTimeout: 10 * time.Second,
 		IdleTimeout:       2 * time.Minute,
 	}

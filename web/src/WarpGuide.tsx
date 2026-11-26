@@ -16,6 +16,7 @@ import {
   type IconName,
 } from "@flatwork-ui/react";
 import type { App } from "./api";
+import { AppIcon } from "./AppIcon";
 import { cloudflareOrange } from "./cloudflare";
 import type { Messages } from "./i18n";
 import { Link } from "./router";
@@ -177,21 +178,7 @@ export function WarpGuide({
               {internal.length === 0 && <p className="fw-t-body fw-t-muted">{m.noInternalApps}</p>}
               {internal.map((a) => (
                 <div key={a.id} style={{ display: "flex", alignItems: "center", gap: 10 }}>
-                  <span
-                    aria-hidden="true"
-                    style={{
-                      display: "grid",
-                      placeContent: "center",
-                      width: 32,
-                      height: 32,
-                      borderRadius: "var(--fw-r-sm)",
-                      background: "var(--fw-surface-2)",
-                      border: "1px solid var(--fw-border)",
-                      color: "var(--fw-heading)",
-                    }}
-                  >
-                    <Icon name={a.icon as IconName} />
-                  </span>
+                  <AppIcon app={a} size={24} />
                   <span className="fw-t-label" style={{ flex: 1 }}>
                     {a.name}
                   </span>

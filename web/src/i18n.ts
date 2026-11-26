@@ -10,6 +10,8 @@ const en = {
   signOut: "Sign out",
   nav: "Hub",
   home: "Home",
+  collapseSidebar: "Collapse sidebar",
+  expandSidebar: "Expand sidebar",
 
   greeting: (hour: number, name: string) =>
     `${hour < 6 ? "Good evening" : hour < 12 ? "Good morning" : hour < 18 ? "Good afternoon" : "Good evening"}, ${name}`,
@@ -19,7 +21,7 @@ const en = {
   readyNow: (ready: number, all: number) => `${ready} of ${all} ready now`,
   ready: "Ready",
   checking: "Checking…",
-  needsWarp: "Needs WARP",
+  lockedNeedsWarp: "Locked · Needs WARP",
   public: "Public",
   internalOverWarp: "Internal, over WARP",
   open: "Open",
@@ -84,6 +86,8 @@ const nl: Messages = {
   signOut: "Uitloggen",
   nav: "Hub",
   home: "Home",
+  collapseSidebar: "Zijbalk inklappen",
+  expandSidebar: "Zijbalk uitklappen",
 
   greeting: (hour, name) =>
     `${hour < 6 ? "Goedenavond" : hour < 12 ? "Goedemorgen" : hour < 18 ? "Goedemiddag" : "Goedenavond"}, ${name}`,
@@ -93,7 +97,7 @@ const nl: Messages = {
   readyNow: (ready, all) => `${ready} van ${all} nu klaar`,
   ready: "Klaar",
   checking: "Controleren…",
-  needsWarp: "WARP nodig",
+  lockedNeedsWarp: "Op slot · WARP nodig",
   public: "Openbaar",
   internalOverWarp: "Intern, via WARP",
   open: "Openen",

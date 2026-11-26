@@ -3,6 +3,7 @@
 package server
 
 import (
+	"context"
 	"encoding/json"
 	"errors"
 	"io/fs"
@@ -12,6 +13,7 @@ import (
 
 	"github.com/jurrebuunk/buunk-hub/internal/auth"
 	"github.com/jurrebuunk/buunk-hub/internal/catalogue"
+	"github.com/jurrebuunk/buunk-hub/internal/favicon"
 	"github.com/jurrebuunk/buunk-hub/internal/i18n"
 )
 
@@ -22,10 +24,15 @@ type Auth interface {
 	CheckOrigin(next http.Handler) http.Handler
 }
 
+// Favicons finds the icon of a site (internal/favicon).
+type Favicons interface {
+	Get(ctx context.Context, siteURL string) (favicon.Icon, error)
+}
+
 // New returns the hub's handler. apps is the catalogue, frontend the built
 // web app (web.Dist()). Everything is behind sign-in except /healthz and
 // /auth/.
-func New(a Auth, apps []catalogue.App, frontend fs.FS) http.Handler {
+func New(a Auth, apps []catalogue.App, icons Favicons, frontend fs.FS) http.Handler {
 	mux := http.NewServeMux()
 	// No auth: Kubernetes probes this.
 	mux.HandleFunc("GET /healthz", func(w http.ResponseWriter, _ *http.Request) {
@@ -35,6 +42,7 @@ func New(a Auth, apps []catalogue.App, frontend fs.FS) http.Handler {
 	a.Routes(mux)
 	mux.Handle("GET /api/me", a.Require(http.HandlerFunc(me)))
 	mux.Handle("GET /api/apps", a.Require(appsHandler(apps)))
+	mux.Handle("GET /api/apps/{id}/favicon", a.Require(faviconHandler(apps, icons)))
 	mux.Handle("GET /api/", a.Require(http.NotFoundHandler()))
 	mux.Handle("GET /", a.Require(spa(frontend)))
 	return securityHeaders(a.CheckOrigin(mux))
@@ -73,6 +81,33 @@ func appsHandler(apps []catalogue.App) http.Handler {
 			}
 		}
 		writeJSON(w, out)
+	})
+}
+
+// faviconHandler serves an app's own icon, for apps the person may see.
+// 404 when the site has none; Home then shows the catalogue's icon.
+func faviconHandler(apps []catalogue.App, icons Favicons) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		id, _ := auth.FromContext(r.Context())
+		for _, a := range apps {
+			if a.ID != r.PathValue("id") || !a.VisibleTo(id.Roles) {
+				continue
+			}
+			icon, err := icons.Get(r.Context(), a.URL)
+			if err != nil {
+				http.NotFound(w, r)
+				return
+			}
+			h := w.Header()
+			h.Set("Content-Type", icon.Type)
+			h.Set("Cache-Control", "private, max-age=86400")
+			// Another site's file on our origin: an SVG opened directly
+			// must not run scripts here.
+			h.Set("Content-Security-Policy", "default-src 'none'; style-src 'unsafe-inline'; sandbox")
+			w.Write(icon.Data)
+			return
+		}
+		http.NotFound(w, r)
 	})
 }
 

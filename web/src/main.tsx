@@ -1,6 +1,7 @@
 import { StrictMode } from "react";
 import { createRoot } from "react-dom/client";
 import "@flatwork-ui/react/styles/flatwork-saas.css";
+import "./hub.css";
 import { App } from "./App";
 
 createRoot(document.getElementById("root")!).render(
