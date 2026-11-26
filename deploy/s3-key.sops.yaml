@@ -1,0 +1,35 @@
+# The hub's S3 key (user hub, bucket hub-avatars, 1 GB quota): profile
+# pictures, milestone 5. Nothing reads it yet.
+apiVersion: v1
+kind: Secret
+metadata:
+    name: hub-s3
+stringData:
+    access-key: ENC[AES256_GCM,data:InswwVAJw2oiCx/RKn/1BOy4mnw=,iv:RJE2CHmC/6wtGbG+hP/aIv721ML24iTWgGiN0FegIEA=,tag:kVEfxHlA14NFNjLF6dn4Gw==,type:str]
+    secret-key: ENC[AES256_GCM,data:UNCByfEL43AS0A5qeiUlBsSdlxPMRPxoWVO9e+jCyr2jLI0Ni1nB6w==,iv:DvFV4TeUJ0ujQ1zVujhEwKZvkMuR+dToDzqlYvwhmww=,tag:bCtJSC3ofqJsPesdNDnwew==,type:str]
+    endpoint: ENC[AES256_GCM,data:2DAo4YaUEYBOYISZJ3OFbFkKZrHGeo7j,iv:HZT2pDhmM5ssYF/c3EiMVc1XPZGBzaNuLb7FpHrt5bU=,tag:kbaJEL08+ljw0YJUiRMddg==,type:str]
+    bucket: ENC[AES256_GCM,data:hBnjDz0y0YEdua0=,iv:9KX3i1TFuT6tSLiHqFUfWIFwLc6GUW1j3CXMsbNALY0=,tag:UKFAmoCRY2T96mP8no1E5Q==,type:str]
+sops:
+    age:
+        - enc: |
+            -----BEGIN AGE ENCRYPTED FILE-----
+            YWdlLWVuY3J5cHRpb24ub3JnL3YxCi0+IFgyNTUxOSBxSi9mNlMza21ka0FkclF0
+            NkxxaHBzQmFGMUdzN1U4YUg1R21hVm5aaWg4CnZ5UC9laTFCcjdNZXFFc2tqdWQx
+            STYrcU0xNFp0T21iZE9PWCt3b20reWsKLS0tIFhIWlhsTjRpVkxpWTVQOTE0U25w
+            YXg5NGUxZnN4SWpqWUFhUWtvSlp4NG8KS12I5iOdpu9t3wQJXCRmtPQyho+wgJrC
+            qJmVHDaNDcMm9n/Ef4vftuOLraDCvW3nikObVfCEwUqLbksoq9597Q==
+            -----END AGE ENCRYPTED FILE-----
+          recipient: age1fharluqqx8n8clz5an6qte8hgqrkawjz6sy23humd2awzr0vq5tsvv6xgf
+        - enc: |
+            -----BEGIN AGE ENCRYPTED FILE-----
+            YWdlLWVuY3J5cHRpb24ub3JnL3YxCi0+IFgyNTUxOSB1anNBSlRpRnRTMk50K212
+            REpVa2hNTTdvUFd6SUk0Tms3dTBpeVRPZlIwClhCOE5OUVdVSzhQaUpZZ3ZROStF
+            MENMeEdwU3JiWnlyNzVvZFRXZEkrZ3cKLS0tIHJvRFg3QkQ1MnRqRGQ4RUxPTHlC
+            VmdKMm5tSWNQRko0Z0xoVkNZNEpvSU0Kw8JxM05nAq9bUGNeZ4n9P7y7POLgppqn
+            ma202bM/WWpvAdmrrb4mHc0I6mQLUPAZPpB9O4EC9GHZGK2az2ZBXw==
+            -----END AGE ENCRYPTED FILE-----
+          recipient: age14lsxk30xq82ywvkf4l8psk55a0tkls87qx3k6u0zllyjt9tpwawsdgycxx
+    encrypted_regex: ^(data|stringData)$
+    lastmodified: "2026-11-26T15:17:03Z"
+    mac: ENC[AES256_GCM,data:Mr8wh+3P7nkvfaPtzWKojT+PTEQQsOYWsrkonXoa2uO6Jl0yf3zMnNn8lVgo/TgItHwJM3UWhsWOYNwfmodxGkiL+I6eQa8B7n4Z/zf4gljCj1iJccqjjQ+G8V4MrGA+BGAT0c//cRX/qYr1ltFOd9NdUyl/b7OgB+aXJL1Kfzw=,iv:DV/Z6zgWfJwz710Bir4GIlZeUeylepgaCGS8dkxxBpo=,tag:6jwxDbQQaWVXHd2QBm8PlA==,type:str]
+    version: 3.13.3

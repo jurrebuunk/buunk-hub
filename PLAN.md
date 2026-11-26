@@ -88,7 +88,7 @@ Made up front so work can start; change one here first if it turns out wrong.
 
 ### 3. On the cluster
 
-- [ ] `deploy/`: namespace `hub`, `hub-db` Cluster, Deployment (2 replicas,
+- [x] `deploy/`: namespace `hub`, `hub-db` Cluster, Deployment (2 replicas,
       zone spread, requests/limits, `prometheus.io` annotations if it has
       metrics), Service, sops Secrets (OIDC client secret, session key, S3
       key), components `postgres`, `egress/default`, `egress/s3`.
@@ -99,7 +99,7 @@ Made up front so work can start; change one here first if it turns out wrong.
       `resource_access`), tunnel route `hub.buunk.org` in
       `infrastructure/cloudflared/config.yaml`, DNS record (proxied CNAME to
       the tunnel).
-- [ ] S3 user `hub` and bucket `hub-avatars` (`labctl s3 user create`,
+- [x] S3 user `hub` and bucket `hub-avatars` (`labctl s3 user create`,
       `labctl s3 bucket create`).
 - [ ] Done when: from outside the network (no WARP) the owner signs in at
       `https://hub.buunk.org`, and `labctl vm stop` on the VM of one replica
