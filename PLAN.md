@@ -101,10 +101,11 @@ Made up front so work can start; change one here first if it turns out wrong.
       the tunnel).
 - [x] S3 user `hub` and bucket `hub-avatars` (`labctl s3 user create`,
       `labctl s3 bucket create`).
-- [ ] Done when: from outside the network (no WARP) the owner signs in at
+- [x] Done when: from outside the network (no WARP) the owner signs in at
       `https://hub.buunk.org`, and `labctl vm stop` on the VM of one replica
-      keeps it working. *Signing in without WARP: passed (owner, 2026-11-26).
-      The replica test is still to do.*
+      keeps it working. *2026-11-26: signing in without WARP passed (owner);
+      `labctl vm stop hgd1-k8w02`: 62 of 64 outside checks answered, the two
+      misses (1 s each) during the drain, when that VM's tunnel pod moved.*
 
 ### 4. Home
 
