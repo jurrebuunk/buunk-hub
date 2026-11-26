@@ -103,7 +103,8 @@ Made up front so work can start; change one here first if it turns out wrong.
       `labctl s3 bucket create`).
 - [ ] Done when: from outside the network (no WARP) the owner signs in at
       `https://hub.buunk.org`, and `labctl vm stop` on the VM of one replica
-      keeps it working.
+      keeps it working. *Signing in without WARP: passed (owner, 2026-11-26).
+      The replica test is still to do.*
 
 ### 4. Home
 
@@ -112,7 +113,7 @@ Made up front so work can start; change one here first if it turns out wrong.
 - [x] Home lists the apps whose role is in the person's token
       (`resource_access.<client>.roles`), as cards; the WARP check for
       internal ones.
-- [ ] Done when: the owner sees Cloudreve; a `friends` test user sees only
+- [x] Done when: the owner sees Cloudreve; a `friends` test user sees only
       what `friends` has; `whoami` shows *connect WARP* off WARP and as normal
       on WARP.
 
