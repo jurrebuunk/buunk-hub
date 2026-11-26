@@ -61,15 +61,15 @@ Made up front so work can start; change one here first if it turns out wrong.
 
 ### 1. Skeleton
 
-- [ ] `flake.nix` dev shell; Go module `github.com/jurrebuunk/buunk-hub`;
+- [x] `flake.nix` dev shell; Go module `github.com/jurrebuunk/buunk-hub`;
       `web/` (Vite, React, TypeScript, `@flatwork-ui/react`); the Go binary
       embeds `web/dist`.
-- [ ] `GET /healthz` (no auth); config from environment variables only
+- [x] `GET /healthz` (no auth); config from environment variables only
       (document each in README).
-- [ ] `Dockerfile` (multi-stage: node build, go build, distroless static,
+- [x] `Dockerfile` (multi-stage: node build, go build, distroless static,
       non-root) and `VERSION` (start at `0.1.0`).
-- [ ] CI: tests and lint on pull requests; the image workflow on `main`.
-- [ ] Done when: `docker build .` works, the container answers `/healthz`,
+- [x] CI: tests and lint on pull requests; the image workflow on `main`.
+- [x] Done when: `docker build .` works, the container answers `/healthz`,
       and CI published `ghcr.io/jurrebuunk/buunk-hub:0.1.0`.
 
 ### 2. Sign-in, locally
