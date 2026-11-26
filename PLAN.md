@@ -120,14 +120,15 @@ Made up front so work can start; change one here first if it turns out wrong.
 
 ### 5. Profile picture
 
-- [ ] In `hgd1-k8s`: realm user profile attribute `picture` (`https://` URL,
+- [x] In `hgd1-k8s`: realm user profile attribute `picture` (`https://` URL,
       edit: admin only, view: user and admin), the `hub` service account
       with `manage-users`.
 - [x] Settings: upload (max 5 MB, JPEG/PNG/WebP in, 512×512 JPEG out),
       crop to square, remove picture.
-- [ ] Done when: after upload the hub shows it, `https://hub.buunk.org/avatars/…`
+- [x] Done when: after upload the hub shows it, `https://hub.buunk.org/avatars/…`
       loads without signing in, and a fresh ID token of another client that
-      asks for `profile` has the `picture` claim.
+      asks for `profile` has the `picture` claim. *2026-11-26: confirmed by
+      the owner; Cloudreve shows the picture (hgd1-cloudreve#2).*
 
 ### 6. Start page
 
@@ -135,19 +136,25 @@ Made up front so work can start; change one here first if it turns out wrong.
       `q`, nothing logged on our side), the person's apps and their quick
       links. Signed out → straight to sign-in and back.
 - [x] Settings: add, edit, reorder and remove quick links (title, URL).
-- [ ] Done when: set as a browser's home page it shows within 200 ms on a
+- [x] Done when: set as a browser's home page it shows within 200 ms on a
       warm connection, under 50 KB, and still works signed in after a week.
+      *2026-11-26: confirmed by the owner.*
 
 ### 7. My pages
 
-- [ ] Sidebar: the person's pages; **+ New page** (title, URL to embed);
+- [x] Sidebar: the person's pages; **+ New page** (title, URL to embed);
       rename, reorder, delete.
-- [ ] Embed in a sandboxed iframe; the framing check on save (https only,
+- [x] Embed in a sandboxed iframe; the framing check on save (https only,
       5 s timeout, no redirects to private addresses: the egress policy
       blocks the site anyway); refused → link card.
 - [ ] Done when: a page embedding an issue tracker works, a site that
       refuses framing shows as a card, and another user can't open the page
-      (test).
+      (test). *2026-11-26, against the dev stack: Bugzilla
+      (`bugzilla.mozilla.org`) saves as embedded, GitHub issues and Redmine
+      save as link cards (`frame-ancestors 'none'`, `X-Frame-Options:
+      sameorigin`); `friend` gets 404 on `owner`'s page and 409 reordering
+      with its id (`TestStoreOwnership`, `TestPagesAPI`). Still to see in a
+      browser on hub.buunk.org.*
 
 ### Later
 

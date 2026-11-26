@@ -61,3 +61,12 @@ export async function send<T = void>(method: string, path: string, body?: unknow
   }
   return (res.status === 204 ? undefined : await res.json()) as T;
 }
+
+/** One of the person's own pages; refused is the header that stops the
+ *  site from being framed ("" when it is embedded). */
+export interface HubPage {
+  id: number;
+  title: string;
+  url: string;
+  refused: string;
+}

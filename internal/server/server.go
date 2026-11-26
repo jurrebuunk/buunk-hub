@@ -9,6 +9,7 @@ import (
 	"io/fs"
 	"log/slog"
 	"net/http"
+	"net/url"
 	"path"
 	"strings"
 
@@ -39,7 +40,10 @@ type Deps struct {
 	Icons    Favicons
 	Pictures Pictures
 	Links    Links
-	Frontend fs.FS // the built web app (web.Dist())
+	Pages    Pages
+	Framing  Framing
+	Hub      *url.URL // the hub's public address: a page may not embed it
+	Frontend fs.FS    // the built web app (web.Dist())
 	Log      *slog.Logger
 }
 
@@ -73,6 +77,13 @@ func New(d Deps) http.Handler {
 	mux.Handle("PUT /api/links/{id}", a.Require(http.HandlerFunc(api.updateLink)))
 	mux.Handle("DELETE /api/links/{id}", a.Require(http.HandlerFunc(api.deleteLink)))
 	mux.Handle("GET /api/links/{id}/favicon", a.Require(http.HandlerFunc(api.linkFavicon)))
+	pg := &pagesAPI{pages: d.Pages, framing: d.Framing, hub: d.Hub, fail: api.fail}
+	mux.Handle("GET /api/pages", a.Require(http.HandlerFunc(pg.list)))
+	mux.Handle("POST /api/pages", a.Require(http.HandlerFunc(pg.add)))
+	mux.Handle("PUT /api/pages/order", a.Require(http.HandlerFunc(pg.reorder)))
+	mux.Handle("GET /api/pages/{id}", a.Require(http.HandlerFunc(pg.get)))
+	mux.Handle("PUT /api/pages/{id}", a.Require(http.HandlerFunc(pg.update)))
+	mux.Handle("DELETE /api/pages/{id}", a.Require(http.HandlerFunc(pg.delete)))
 	mux.Handle("GET /api/", a.Require(http.NotFoundHandler()))
 	mux.Handle("GET /", a.Require(spa(d.Frontend)))
 	return securityHeaders(a.CheckOrigin(mux))

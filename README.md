@@ -9,7 +9,7 @@ accounts and passwords live.
 It runs on the [hgd1 cluster](https://github.com/jurrebuunk/hgd1-k8s) and is
 deployed by Flux from this repo's `deploy/`.
 
-**Status:** milestones 5 (profile picture) and 6 (start page) of [PLAN.md](PLAN.md);
+**Status:** milestone 7 (my pages) of [PLAN.md](PLAN.md);
 agents start with [AGENTS.md](AGENTS.md). The designs the pages follow are
 the flatwork-saas mock-ups of the whole hub (Home, the WARP guide, and the
 pages still to come).
@@ -102,6 +102,21 @@ a DuckDuckGo search form, the person's apps and their quick links (Settings
 → Start page and quick links). No framework and no web fonts, about 8 KB;
 the clock is the only script and the page works without it. Signed out, it
 goes to sign-in and back.
+
+## My pages
+
+Each person can make pages of their own (sidebar → **New page**): a title
+and an `https://` address, shown inside the hub in a sandboxed iframe
+(`allow-scripts allow-forms allow-popups allow-same-origin`). Only theirs:
+every query is by their sub (`internal/pages`). The hub's own address is
+refused, since a framed hub page could lift that sandbox.
+
+On save the server asks the site whether it may be framed, as a browser
+would: CSP `frame-ancestors` when there is one, else `X-Frame-Options`,
+after redirects (5 s, public addresses only, `internal/safenet`). If it
+refuses, the page is a card that opens the site in a new tab and names the
+header. A site the hub can't reach (one behind WARP, say) is embedded
+anyway; the person's browser may reach it.
 
 ## Home and the catalogue
 

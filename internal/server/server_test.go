@@ -8,6 +8,7 @@ import (
 	"log/slog"
 	"net/http"
 	"net/http/httptest"
+	"net/url"
 	"strings"
 	"testing"
 	"testing/fstest"
@@ -17,6 +18,7 @@ import (
 	"github.com/jurrebuunk/buunk-hub/internal/favicon"
 	"github.com/jurrebuunk/buunk-hub/internal/i18n"
 	"github.com/jurrebuunk/buunk-hub/internal/links"
+	"github.com/jurrebuunk/buunk-hub/internal/pages"
 )
 
 var testApps = []catalogue.App{
@@ -88,9 +90,68 @@ func (f *fakeLinks) Reorder(_ context.Context, sub string, _ []int64) error {
 	return nil
 }
 
+// fakePages has page 1, which belongs to u1; any other id is someone
+// else's (or nobody's). It records whose pages were asked for.
+type fakePages struct {
+	subs  []string
+	saved []pages.Page
+}
+
+func (f *fakePages) List(_ context.Context, sub string) ([]pages.Page, error) {
+	f.subs = append(f.subs, sub)
+	return []pages.Page{{ID: 1, Title: "Issues", URL: "https://issues.example.test"}}, nil
+}
+func (f *fakePages) Get(_ context.Context, sub string, id int64) (pages.Page, error) {
+	f.subs = append(f.subs, sub)
+	if id != 1 || sub != "u1" {
+		return pages.Page{}, pages.ErrNotFound
+	}
+	return pages.Page{ID: 1, Title: "Issues", URL: "https://issues.example.test"}, nil
+}
+func (f *fakePages) Add(_ context.Context, sub string, p pages.Page) (pages.Page, error) {
+	f.subs = append(f.subs, sub)
+	p.ID = 2
+	f.saved = append(f.saved, p)
+	return p, nil
+}
+func (f *fakePages) Update(_ context.Context, sub string, p pages.Page) error {
+	f.subs = append(f.subs, sub)
+	f.saved = append(f.saved, p)
+	return nil
+}
+func (f *fakePages) Delete(_ context.Context, sub string, id int64) error {
+	f.subs = append(f.subs, sub)
+	if id != 1 {
+		return pages.ErrNotFound
+	}
+	return nil
+}
+func (f *fakePages) Reorder(_ context.Context, sub string, _ []int64) error {
+	f.subs = append(f.subs, sub)
+	return nil
+}
+
+// fakeFraming: deny.example.test refuses framing, the rest allows it.
+type fakeFraming struct{ checked []string }
+
+func (f *fakeFraming) Check(_ context.Context, address string) string {
+	f.checked = append(f.checked, address)
+	if strings.HasPrefix(address, "https://deny.example.test") {
+		return "X-Frame-Options: deny"
+	}
+	return ""
+}
+
+var testHub, _ = url.Parse("https://hub.example.test")
+
+func testDeps(a fakeAuth, fe fs.FS) Deps {
+	return Deps{Auth: a, Apps: testApps, Icons: fakeIcons{}, Pictures: &fakePictures{}, Links: &fakeLinks{},
+		Pages: &fakePages{}, Framing: &fakeFraming{}, Hub: testHub,
+		Frontend: fe, Log: slog.New(slog.NewTextHandler(io.Discard, nil))}
+}
+
 func newServer(a fakeAuth, fe fs.FS) http.Handler {
-	return New(Deps{Auth: a, Apps: testApps, Icons: fakeIcons{}, Pictures: &fakePictures{}, Links: &fakeLinks{},
-		Frontend: fe, Log: slog.New(slog.NewTextHandler(io.Discard, nil))})
+	return New(testDeps(a, fe))
 }
 
 // fakeAuth lets everyone in as one person, or no one.
@@ -228,8 +289,9 @@ func do(h http.Handler, method, target, body string, header map[string]string) *
 // Every link call is for the signed-in person (u1), whatever the request says.
 func TestLinksAPI(t *testing.T) {
 	fl := &fakeLinks{}
-	h := New(Deps{Auth: fakeAuth{signedIn: true}, Apps: testApps, Icons: fakeIcons{}, Pictures: &fakePictures{},
-		Links: fl, Frontend: frontend, Log: slog.New(slog.NewTextHandler(io.Discard, nil))})
+	d := testDeps(fakeAuth{signedIn: true}, frontend)
+	d.Links = fl
+	h := New(d)
 	json := map[string]string{"Content-Type": "application/json"}
 	for _, tc := range []struct {
 		method, path, body string
@@ -261,8 +323,9 @@ func TestLinksAPI(t *testing.T) {
 
 func TestPictureAPI(t *testing.T) {
 	fp := &fakePictures{}
-	h := New(Deps{Auth: fakeAuth{signedIn: true}, Apps: testApps, Icons: fakeIcons{}, Pictures: fp,
-		Links: &fakeLinks{}, Frontend: frontend, Log: slog.New(slog.NewTextHandler(io.Discard, nil))})
+	d := testDeps(fakeAuth{signedIn: true}, frontend)
+	d.Pictures = fp
+	h := New(d)
 	body := "--x\r\nContent-Disposition: form-data; name=\"picture\"; filename=\"a.png\"\r\n\r\nPNGDATA\r\n--x--\r\n"
 	rec := do(h, "POST", "/api/me/picture", body, map[string]string{"Content-Type": "multipart/form-data; boundary=x"})
 	if rec.Code != 200 || len(fp.uploads) != 1 || fp.uploads[0] != "u1:PNGDATA" {
@@ -295,6 +358,57 @@ func TestStartPage(t *testing.T) {
 		t.Errorf("CSP %q", rec.Header().Get("Content-Security-Policy"))
 	}
 	if rec := get(t, newServer(fakeAuth{}, frontend), "/start"); rec.Code != 401 {
+		t.Errorf("signed out: %d", rec.Code)
+	}
+}
+
+// Every page call is for the signed-in person (u1); someone else's page is
+// not found; the framing check runs on add and on a new address only.
+func TestPagesAPI(t *testing.T) {
+	fp, ff := &fakePages{}, &fakeFraming{}
+	d := testDeps(fakeAuth{signedIn: true}, frontend)
+	d.Pages, d.Framing = fp, ff
+	h := New(d)
+	json := map[string]string{"Content-Type": "application/json"}
+	for _, tc := range []struct {
+		method, path, body string
+		want               int
+	}{
+		{"GET", "/api/pages", "", 200},
+		{"GET", "/api/pages/1", "", 200},
+		// Someone else's page, by id.
+		{"GET", "/api/pages/7", "", 404},
+		{"PUT", "/api/pages/7", `{"title":"Mine","url":"https://evil.example.test"}`, 404},
+		{"DELETE", "/api/pages/7", "", 404},
+		{"POST", "/api/pages", `{"title":"Board","url":"board.example.test"}`, 201},
+		{"POST", "/api/pages", `{"title":"GitHub","url":"https://deny.example.test"}`, 201},
+		{"POST", "/api/pages", `{"title":"x","url":"http://plain.example.test"}`, 422},
+		{"POST", "/api/pages", `{"title":"x","url":"https://hub.example.test/"}`, 422},
+		{"POST", "/api/pages", `not json`, 400},
+		// Rename: same address, no new check.
+		{"PUT", "/api/pages/1", `{"title":"Job issues","url":"https://issues.example.test"}`, 200},
+		{"PUT", "/api/pages/1", `{"title":"Job issues","url":"https://deny.example.test/x"}`, 200},
+		{"PUT", "/api/pages/order", `{"ids":[1]}`, 204},
+		{"DELETE", "/api/pages/1", "", 204},
+	} {
+		if rec := do(h, tc.method, tc.path, tc.body, json); rec.Code != tc.want {
+			t.Errorf("%s %s: %d, want %d (%s)", tc.method, tc.path, rec.Code, tc.want, rec.Body.String())
+		}
+	}
+	for _, sub := range fp.subs {
+		if sub != "u1" {
+			t.Errorf("a call for %q", sub)
+		}
+	}
+	want := []string{"https://board.example.test", "https://deny.example.test", "https://deny.example.test/x"}
+	if strings.Join(ff.checked, " ") != strings.Join(want, " ") {
+		t.Errorf("checked %v, want %v", ff.checked, want)
+	}
+	if len(fp.saved) != 4 || fp.saved[0].Refused != "" || fp.saved[1].Refused != "X-Frame-Options: deny" ||
+		fp.saved[2].Title != "Job issues" || fp.saved[3].Refused != "X-Frame-Options: deny" {
+		t.Errorf("saved %+v", fp.saved)
+	}
+	if rec := get(t, newServer(fakeAuth{}, frontend), "/api/pages"); rec.Code != 401 {
 		t.Errorf("signed out: %d", rec.Code)
 	}
 }

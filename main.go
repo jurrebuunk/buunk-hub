@@ -21,6 +21,7 @@ import (
 	"github.com/jurrebuunk/buunk-hub/internal/kcadmin"
 	"github.com/jurrebuunk/buunk-hub/internal/links"
 	"github.com/jurrebuunk/buunk-hub/internal/objects"
+	"github.com/jurrebuunk/buunk-hub/internal/pages"
 	"github.com/jurrebuunk/buunk-hub/internal/picture"
 	"github.com/jurrebuunk/buunk-hub/internal/server"
 	"github.com/jurrebuunk/buunk-hub/web"
@@ -82,6 +83,9 @@ func run(log *slog.Logger) error {
 				Log:       log,
 			},
 			Links:    links.Store{DB: pool},
+			Pages:    pages.Store{DB: pool},
+			Framing:  pages.NewFraming(cfg.PublicURL, log),
+			Hub:      cfg.PublicURL,
 			Frontend: web.Dist(),
 			Log:      log,
 		}),

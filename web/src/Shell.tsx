@@ -1,6 +1,6 @@
 import { useEffect, useState, type ReactNode } from "react";
 import { Avatar, Button, Icon, NavItem, SideNav, VisuallyHidden } from "@flatwork-ui/react";
-import type { Me } from "./api";
+import type { HubPage, Me } from "./api";
 import type { Messages } from "./i18n";
 import { Link } from "./router";
 
@@ -57,7 +57,21 @@ function useNarrow(): boolean {
 }
 
 /** The sidebar and the page next to it (designs: every hub page). */
-export function Shell({ me, m, path, children }: { me: Me; m: Messages; path: string; children: ReactNode }) {
+export function Shell({
+  me,
+  m,
+  path,
+  pages,
+  onNewPage,
+  children,
+}: {
+  me: Me;
+  m: Messages;
+  path: string;
+  pages: HubPage[];
+  onNewPage: () => void;
+  children: ReactNode;
+}) {
   const [stored, setCollapsed] = useState(loadCollapsed);
   const narrow = useNarrow();
   const collapsed = stored || narrow;
@@ -88,6 +102,30 @@ export function Shell({ me, m, path, children }: { me: Me; m: Messages; path: st
         >
           {label(m.home)}
         </NavItem>
+        <span className="fw-group-label hub-group">{label(m.myPages)}</span>
+        {pages.map((p) => (
+          <NavItem
+            key={p.id}
+            as={Link}
+            href={`/pages/${p.id}`}
+            current={path === `/pages/${p.id}`}
+            icon={<Icon name="article" />}
+            title={collapsed ? p.title : undefined}
+          >
+            {collapsed ? <VisuallyHidden>{p.title}</VisuallyHidden> : <span className="hub-nav-text">{p.title}</span>}
+          </NavItem>
+        ))}
+        {/* A button, not a link: it opens the New page dialog. */}
+        <button
+          type="button"
+          className="fw-nav-item hub-nav-button"
+          aria-haspopup="dialog"
+          title={collapsed ? m.newPage : undefined}
+          onClick={onNewPage}
+        >
+          <Icon name="add" />
+          {label(m.newPage)}
+        </button>
         <span className="fw-group-label hub-group">{label(m.you)}</span>
         <NavItem
           as={Link}
