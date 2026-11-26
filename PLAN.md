@@ -51,7 +51,8 @@ Made up front so work can start; change one here first if it turns out wrong.
 | Apps on Home | A catalogue in Git (`deploy/catalogue.yaml`, a ConfigMap): name, URL, description, icon, the client role that grants it, `internal: true` for apps behind WARP. Shown when the person's token has that role | "Shared, defined by the owner"; no admin rights needed to list apps |
 | WARP check | For each internal app the browser fetches `https://<app>/` with `mode: "no-cors"` and a 1.5 s timeout: it resolves only on WARP *and* when Gateway lets the person in. Fails → greyed out with a link to the WARP how-to | Shows exactly what the person can use right now |
 | Picture | Upload → server re-encodes to a 512×512 JPEG (strips metadata), stores `hub-avatars/<user-id>/<hash>.jpg`, serves it publicly at `https://hub.buunk.org/avatars/<user-id>/<hash>.jpg` (immutable cache), and writes that URL into the Keycloak user's `picture` attribute | S3 is never published; other apps (Cloudreve) read the `picture` claim |
-| Keycloak writes | The `hub` client gets a service account with `realm-management` role `manage-users`, used **only** to set `picture` | Simplest; it's our own app. Revisit with fine-grained admin permissions if that grows |
+| Keycloak writes | The `hub` client gets a service account with `realm-management` role `manage-users`, used to set `picture`, to change a person's own first name, last name and email (a new email is unverified until they follow Keycloak's mail), and to read their groups | Simplest; it's our own app. Revisit with fine-grained admin permissions if that grows |
+| Language choice | Kept by the hub (`users.lang`), not in Keycloak: the realm has no languages switched on | The hub follows it; other apps don't until the realm gets `en`/`nl` |
 | Embeds | `<iframe sandbox="allow-scripts allow-forms allow-popups allow-same-origin">` of another origin. On save the server checks the target's `X-Frame-Options` and CSP `frame-ancestors`; refused → a link card instead | Many sites refuse framing |
 | Languages | English and Dutch, from the token's `locale` claim, else `Accept-Language` | Family is Dutch |
 | Image, CI | `ghcr.io/jurrebuunk/buunk-hub:<VERSION>` from GitHub Actions, published once per version (copy `hgd1-cloudreve/.github/workflows/image.yml`), distroless, non-root | Same as Cloudreve |
@@ -155,6 +156,16 @@ Made up front so work can start; change one here first if it turns out wrong.
       sameorigin`); `friend` gets 404 on `owner`'s page and 409 reordering
       with its id (`TestStoreOwnership`, `TestPagesAPI`). Still to see in a
       browser on hub.buunk.org.*
+
+### 8. From the designs
+
+- [x] First visit: the *Finish your profile* dialog (picture, name, email,
+      language), also from Home; Settings → Account edits the same and
+      shows the person's groups.
+- [x] Settings → Start page: a custom style (CSS, up to 10 KB, cleaned of
+      anything that loads from other sites) for `/start`.
+- [x] Home lists the person's pages as thin cards; pages show their site's
+      icon there and in the sidebar.
 
 ### Later
 

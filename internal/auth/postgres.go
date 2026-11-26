@@ -38,11 +38,13 @@ func (p PGStore) Session(ctx context.Context, id []byte) (Session, User, error) 
 	var s Session
 	var u User
 	err := p.DB.QueryRow(ctx, `SELECT s.id, s.sub, s.roles, s.refresh_token, s.id_token,
-			s.expires_at, s.roles_checked_at, u.name, u.username, u.email, u.locale, u.picture
+			s.expires_at, s.roles_checked_at, u.name, u.username, u.email, u.locale, u.picture,
+			u.lang, u.welcomed_at IS NOT NULL
 		FROM sessions s JOIN users u USING (sub)
 		WHERE s.id = $1 AND s.expires_at > now()`, id).
 		Scan(&s.ID, &s.Sub, &s.Roles, &s.RefreshToken, &s.IDToken,
-			&s.ExpiresAt, &s.RolesCheckedAt, &u.Name, &u.Username, &u.Email, &u.Locale, &u.Picture)
+			&s.ExpiresAt, &s.RolesCheckedAt, &u.Name, &u.Username, &u.Email, &u.Locale, &u.Picture,
+			&u.Lang, &u.Welcomed)
 	if errors.Is(err, pgx.ErrNoRows) {
 		return Session{}, User{}, ErrNoSession
 	}
@@ -81,5 +83,37 @@ func (p PGStore) DeleteExpired(ctx context.Context) error {
 // hourly refresh brings the same value from Keycloak.
 func (p PGStore) SetPicture(ctx context.Context, sub, picture string) error {
 	_, err := p.DB.Exec(ctx, "UPDATE users SET picture = $2, updated_at = now() WHERE sub = $1", sub, picture)
+	return err
+}
+
+// SetProfile updates the cached name and email right away, after the hub
+// changed them in Keycloak.
+func (p PGStore) SetProfile(ctx context.Context, sub, name, email string) error {
+	_, err := p.DB.Exec(ctx, "UPDATE users SET name = $2, email = $3, updated_at = now() WHERE sub = $1", sub, name, email)
+	return err
+}
+
+// SetLang saves the language the person chose ("" to follow their account).
+func (p PGStore) SetLang(ctx context.Context, sub, lang string) error {
+	_, err := p.DB.Exec(ctx, "UPDATE users SET lang = $2, updated_at = now() WHERE sub = $1", sub, lang)
+	return err
+}
+
+// SetWelcomed marks the first-visit profile dialog as done.
+func (p PGStore) SetWelcomed(ctx context.Context, sub string) error {
+	_, err := p.DB.Exec(ctx, "UPDATE users SET welcomed_at = coalesce(welcomed_at, now()) WHERE sub = $1", sub)
+	return err
+}
+
+// StartCSS returns the person's own style for /start ("" for none).
+func (p PGStore) StartCSS(ctx context.Context, sub string) (string, error) {
+	var css string
+	err := p.DB.QueryRow(ctx, "SELECT start_css FROM users WHERE sub = $1", sub).Scan(&css)
+	return css, err
+}
+
+// SetStartCSS saves it; it must be cleaned first (internal/startcss).
+func (p PGStore) SetStartCSS(ctx context.Context, sub, css string) error {
+	_, err := p.DB.Exec(ctx, "UPDATE users SET start_css = $2, updated_at = now() WHERE sub = $1", sub, css)
 	return err
 }

@@ -1,16 +1,19 @@
-// Package kcadmin changes the one thing the hub writes in Keycloak: a
-// person's picture attribute, through the admin API as the hub client's
-// service account (realm-management manage-users).
+// Package kcadmin is what the hub reads and writes of a person in Keycloak,
+// through the admin API as the hub client's service account
+// (realm-management manage-users): their picture attribute, their name and
+// email (Settings and the first-visit dialog), and the groups they are in.
 package kcadmin
 
 import (
 	"bytes"
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"net/http"
 	"net/url"
+	"strings"
 	"time"
 
 	"golang.org/x/oauth2"
@@ -63,6 +66,71 @@ func (c *Client) SetPicture(ctx context.Context, sub, pictureURL string) error {
 	return c.do(ctx, http.MethodPut, u, user, nil)
 }
 
+var (
+	// ErrEmailTaken: another account has that email.
+	ErrEmailTaken = errors.New("email in use by another account")
+	// ErrInvalid: Keycloak's user profile refused a value.
+	ErrInvalid = errors.New("refused by the user profile")
+)
+
+// Profile is the part of a person's account they can change in the hub.
+type Profile struct {
+	FirstName     string `json:"firstName"`
+	LastName      string `json:"lastName"`
+	Email         string `json:"email"`
+	EmailVerified bool   `json:"emailVerified"`
+}
+
+func (c *Client) userURL(sub string) string { return c.AdminURL + "/users/" + url.PathEscape(sub) }
+
+// Profile reads the person's name and email.
+func (c *Client) Profile(ctx context.Context, sub string) (Profile, error) {
+	var p Profile
+	err := c.do(ctx, http.MethodGet, c.userURL(sub), nil, &p)
+	return p, err
+}
+
+// SetProfile changes the name and email. A new email is unverified until
+// the person follows the link Keycloak mails them (realm verifyEmail), so
+// it can't be used to take over someone else's address unnoticed.
+func (c *Client) SetProfile(ctx context.Context, sub string, p Profile) (emailChanged bool, err error) {
+	u := c.userURL(sub)
+	var user map[string]any
+	if err := c.do(ctx, http.MethodGet, u, nil, &user); err != nil {
+		return false, err
+	}
+	old, _ := user["email"].(string)
+	emailChanged = !strings.EqualFold(old, p.Email)
+	user["firstName"], user["lastName"], user["email"] = p.FirstName, p.LastName, p.Email
+	if emailChanged {
+		user["emailVerified"] = false
+	}
+	if err := c.do(ctx, http.MethodPut, u, user, nil); err != nil {
+		return false, err
+	}
+	if emailChanged {
+		// The change stands either way; the person can ask for the mail again
+		// at sign-in.
+		err = c.do(ctx, http.MethodPut, u+"/send-verify-email?client_id=hub", nil, nil)
+	}
+	return emailChanged, err
+}
+
+// Groups returns the names of the groups the person is in.
+func (c *Client) Groups(ctx context.Context, sub string) ([]string, error) {
+	var gs []struct {
+		Name string `json:"name"`
+	}
+	if err := c.do(ctx, http.MethodGet, c.userURL(sub)+"/groups?briefRepresentation=true", nil, &gs); err != nil {
+		return nil, err
+	}
+	names := make([]string, len(gs))
+	for i, g := range gs {
+		names[i] = g.Name
+	}
+	return names, nil
+}
+
 func (c *Client) do(ctx context.Context, method, u string, body, out any) error {
 	var r io.Reader
 	if body != nil {
@@ -82,6 +150,13 @@ func (c *Client) do(ctx context.Context, method, u string, body, out any) error 
 		return err
 	}
 	defer resp.Body.Close()
+	switch resp.StatusCode {
+	case http.StatusConflict:
+		return ErrEmailTaken
+	case http.StatusBadRequest:
+		msg, _ := io.ReadAll(io.LimitReader(resp.Body, 512))
+		return fmt.Errorf("%w: %s", ErrInvalid, msg)
+	}
 	if resp.StatusCode/100 != 2 {
 		msg, _ := io.ReadAll(io.LimitReader(resp.Body, 512))
 		return fmt.Errorf("keycloak %s %s: %s %s", method, u, resp.Status, msg)

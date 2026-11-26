@@ -2,6 +2,7 @@ import { useEffect, useState, type ReactNode } from "react";
 import { Avatar, Button, Icon, NavItem, SideNav, VisuallyHidden } from "@flatwork-ui/react";
 import type { HubPage, Me } from "./api";
 import type { Messages } from "./i18n";
+import { PageIcon } from "./Pages";
 import { Link } from "./router";
 
 export function initials(name: string): string {
@@ -109,7 +110,7 @@ export function Shell({
             as={Link}
             href={`/pages/${p.id}`}
             current={path === `/pages/${p.id}`}
-            icon={<Icon name="article" />}
+            icon={<PageIcon page={p} />}
             title={collapsed ? p.title : undefined}
           >
             {collapsed ? <VisuallyHidden>{p.title}</VisuallyHidden> : <span className="hub-nav-text">{p.title}</span>}
@@ -126,7 +127,8 @@ export function Shell({
           <Icon name="add" />
           {label(m.newPage)}
         </button>
-        <span className="fw-group-label hub-group">{label(m.you)}</span>
+        {/* Settings and the start page sit at the bottom, above the toggle. */}
+        <span className="fw-group-label hub-group hub-push">{label(m.you)}</span>
         <NavItem
           as={Link}
           href="/settings"

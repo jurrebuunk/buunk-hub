@@ -40,9 +40,14 @@
   text-decoration: none;
 }
 
-/* A nav row that is a button, pushed down to just above the profile. */
-.hub-toggle {
+/* "You" (Settings, Start page) and the toggle go to the bottom, above the
+   profile. */
+.hub-push {
   margin-top: auto;
+}
+
+/* A nav row that is a button, just above the profile. */
+.hub-toggle {
   width: 100%;
   border: 0;
   background: none;
@@ -161,6 +166,7 @@
   border: 0;
   background: none;
   font: inherit;
+  font-size: 13px;
   text-align: left;
   cursor: pointer;
 }
@@ -209,4 +215,143 @@
   border: 0;
   /* Most sites assume a white page behind them. */
   background: #fff;
+}
+
+/* A site's own icon in a nav row or card. Dark: a thin light edge, so a
+   black icon (GitHub's) stays visible. */
+.hub-favicon {
+  flex: none;
+  object-fit: contain;
+  border-radius: 4px;
+}
+@media (prefers-color-scheme: dark) {
+  .hub-favicon {
+    filter: drop-shadow(0 0 1px rgba(255, 255, 255, 0.7));
+  }
+}
+
+/* Home: a person's pages as thin cards, after the apps. */
+.hub-page-cards {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+  gap: 12px;
+}
+.hub-page-card {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-height: 64px;
+  padding: 12px 14px;
+  border: 1px solid var(--fw-border);
+  border-radius: var(--fw-r-md);
+  background: var(--fw-surface);
+  color: var(--fw-text);
+  text-decoration: none;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+.hub-page-card:hover {
+  border-color: var(--fw-border-strong);
+  background: var(--fw-surface-2);
+}
+.hub-page-card.is-new {
+  border-style: dashed;
+  border-color: var(--fw-border-strong);
+  background: transparent;
+  color: var(--fw-muted);
+}
+.hub-page-card-icon {
+  flex: none;
+  display: grid;
+  place-content: center;
+  width: 36px;
+  height: 36px;
+  border-radius: var(--fw-r-sm);
+  background: var(--fw-surface-2);
+  border: 1px solid var(--fw-border);
+  color: var(--fw-heading);
+}
+.hub-page-card-text {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+}
+.hub-page-card-text > * {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* The first-visit dialog: wider, with the picture to pick in a circle. */
+.hub-welcome.fw-dialog {
+  width: min(600px, calc(100vw - 32px));
+}
+.hub-pick-picture {
+  position: relative;
+  flex: none;
+  display: grid;
+  place-content: center;
+  width: 112px;
+  height: 112px;
+  border-radius: 50%;
+  border: 2px dashed var(--fw-border-strong);
+  background: var(--fw-input);
+  color: var(--fw-text);
+  cursor: pointer;
+  overflow: hidden;
+}
+.hub-pick-picture:focus-within {
+  outline: 2px solid var(--fw-focus);
+  outline-offset: 2px;
+}
+.hub-visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  opacity: 0;
+  overflow: hidden;
+}
+.hub-rule {
+  width: 100%;
+  margin: 0;
+  border: 0;
+  border-top: 1px solid var(--fw-border);
+}
+
+/* Name fields side by side; email and language across. */
+.hub-profile-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 16px;
+}
+.hub-profile-grid .hub-span {
+  grid-column: 1 / -1;
+}
+@media (max-width: 520px) {
+  .hub-profile-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+/* The start page style editor. */
+.hub-code.fw-textarea {
+  min-height: 220px;
+  font-family: var(--fw-mono);
+  font-size: 13px;
+  line-height: 1.6;
+  tab-size: 2;
+}
+
+/* A button that reads as a link, inside a sentence. */
+.hub-text-button {
+  padding: 0;
+  border: 0;
+  background: none;
+  font: inherit;
+  color: var(--fw-heading);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+  cursor: pointer;
 }

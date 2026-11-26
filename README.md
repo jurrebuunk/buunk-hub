@@ -9,7 +9,7 @@ accounts and passwords live.
 It runs on the [hgd1 cluster](https://github.com/jurrebuunk/hgd1-k8s) and is
 deployed by Flux from this repo's `deploy/`.
 
-**Status:** milestone 7 (my pages) of [PLAN.md](PLAN.md);
+**Status:** milestone 8 (from the designs) of [PLAN.md](PLAN.md);
 agents start with [AGENTS.md](AGENTS.md). The designs the pages follow are
 the flatwork-saas mock-ups of the whole hub (Home, the WARP guide, and the
 pages still to come).
@@ -95,6 +95,17 @@ the person's `picture` attribute in Keycloak, through the `hub` client's
 service account (`realm-management` `manage-users`, scope `kc-admin-api`).
 Other apps get it as the `picture` claim with scope `profile`.
 
+## Profile
+
+On their first visit (and from Home's *Finish your profile*) people get a
+dialog for their picture, first and last name, email and language;
+Settings → Account edits the same and lists their groups. Name and email
+are written to Keycloak through the service account, so every app gets
+them; a changed email is unverified until they follow the mail Keycloak
+sends. Groups are read from the admin API. The language is the hub's own
+(`users.lang`): the realm has no languages switched on, so other apps
+don't follow it.
+
 ## Start page
 
 `/start` is a page of its own, rendered by the server (`internal/startpage`):
@@ -102,6 +113,13 @@ a DuckDuckGo search form, the person's apps and their quick links (Settings
 → Start page and quick links). No framework and no web fonts, about 8 KB;
 the clock is the only script and the page works without it. Signed out, it
 goes to sign-in and back.
+
+Each person can add their own CSS (Settings → Start page, up to 10 KB),
+put after the page's own. Its colours and radii are `--fw-*` tokens to
+override on `.start`. When saved, `internal/startcss` removes `<`,
+backslash escapes, `@import`, `@font-face` and anything that loads an
+address (`url()`, `image-set()`, …); the page's CSP loads nothing from
+other sites either way.
 
 ## My pages
 
@@ -117,6 +135,10 @@ after redirects (5 s, public addresses only, `internal/safenet`). If it
 refuses, the page is a card that opens the site in a new tab and names the
 header. A site the hub can't reach (one behind WARP, say) is embedded
 anyway; the person's browser may reach it.
+
+Home lists the pages as thin cards after the apps. A page's icon, in the
+sidebar and on Home, is its site's favicon (`/api/pages/{id}/favicon`,
+fetched by the server like the apps' icons).
 
 ## Home and the catalogue
 

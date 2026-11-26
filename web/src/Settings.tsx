@@ -1,13 +1,13 @@
 import { useEffect, useState, type FormEvent } from "react";
 import {
   Alert,
+  Badge,
   Button,
   ButtonLink,
   Card,
   CardBody,
   CardFooter,
   CardHeader,
-  DescriptionList,
   Dropzone,
   Field,
   Fieldset,
@@ -16,20 +16,17 @@ import {
   List,
   ListItem,
   Spinner,
+  Textarea,
 } from "@flatwork-ui/react";
-import { ApiError, getJSON, send, type Me, type QuickLink } from "./api";
+import { getJSON, send, type Me, type QuickLink } from "./api";
 import type { Messages } from "./i18n";
 import { CropDialog } from "./CropDialog";
+import { AccountCard } from "./Profile";
+import { errorText, usePicture } from "./usePicture";
 import { Link } from "./router";
 import { Picture } from "./Shell";
 
 // Settings (designs: Settings, SettingsLinks): only the person's own things.
-
-const maxUpload = 5 << 20;
-
-function errorText(m: Messages, e: unknown): string {
-  return m.errors[e instanceof ApiError ? e.code : "other"] ?? m.errors.other;
-}
 
 export function Settings({ me, m, path, setMe }: { me: Me; m: Messages; path: string; setMe: (me: Me) => void }) {
   const onStart = path === "/settings/start";
@@ -55,53 +52,7 @@ export function Settings({ me, m, path, setMe }: { me: Me; m: Messages; path: st
 }
 
 function Profile({ me, m, setMe }: { me: Me; m: Messages; setMe: (me: Me) => void }) {
-  const [busy, setBusy] = useState(false);
-  const [message, setMessage] = useState<{ tone: "success" | "error"; text: string }>();
-
-  const [framing, setFraming] = useState<File>();
-
-  // A chosen file is framed first (CropDialog), then uploaded.
-  function choose(files: FileList) {
-    const file = files[0];
-    if (!file) return;
-    if (file.size > maxUpload) {
-      setMessage({ tone: "error", text: m.errors["too-large"]! });
-      return;
-    }
-    setMessage(undefined);
-    setFraming(file);
-  }
-
-  async function upload(cropped: Blob) {
-    setFraming(undefined);
-    const form = new FormData();
-    form.append("picture", cropped, "picture.jpg");
-    setBusy(true);
-    setMessage(undefined);
-    try {
-      const { picture } = await send<{ picture: string }>("POST", "/api/me/picture", form);
-      setMe({ ...me, picture });
-      setMessage({ tone: "success", text: m.pictureSaved });
-    } catch (e) {
-      setMessage({ tone: "error", text: errorText(m, e) });
-    } finally {
-      setBusy(false);
-    }
-  }
-
-  async function remove() {
-    setBusy(true);
-    setMessage(undefined);
-    try {
-      await send("DELETE", "/api/me/picture");
-      setMe({ ...me, picture: "" });
-      setMessage({ tone: "success", text: m.pictureRemoved });
-    } catch (e) {
-      setMessage({ tone: "error", text: errorText(m, e) });
-    } finally {
-      setBusy(false);
-    }
-  }
+  const { busy, message, framing, choose, upload, remove, cancelFraming } = usePicture(me, m, setMe);
 
   return (
     <>
@@ -130,7 +81,7 @@ function Profile({ me, m, setMe }: { me: Me; m: Messages; setMe: (me: Me) => voi
               <Dropzone
                 accept="image/jpeg,image/png,image/webp"
                 disabled={busy}
-                onFiles={choose}
+                onFiles={(files) => choose(files)}
                 title={
                   busy ? (
                     <span style={{ display: "inline-flex", alignItems: "center", gap: 8 }}>
@@ -147,32 +98,11 @@ function Profile({ me, m, setMe }: { me: Me; m: Messages; setMe: (me: Me) => voi
             </div>
           </div>
           {message && <Alert tone={message.tone}>{message.text}</Alert>}
-          {framing && <CropDialog file={framing} m={m} onCancel={() => setFraming(undefined)} onDone={upload} />}
+          {framing && <CropDialog file={framing} m={m} onCancel={cancelFraming} onDone={upload} />}
         </CardBody>
       </Card>
 
-      <Card aria-labelledby="acct-title">
-        <CardHeader>
-          <div>
-            <h2 className="fw-card-title" id="acct-title">
-              {m.accountTitle}
-            </h2>
-            <p className="fw-card-sub">{m.accountSub}</p>
-          </div>
-        </CardHeader>
-        <CardBody>
-          <DescriptionList
-            items={[
-              { term: m.name, value: me.name || "—" },
-              { term: m.email, value: me.email || "—" },
-              { term: m.username, value: me.username || "—", mono: true },
-            ]}
-          />
-        </CardBody>
-        <CardFooter style={{ justifyContent: "flex-start" }}>
-          <p className="fw-t-caption">{m.accountHelp}</p>
-        </CardFooter>
-      </Card>
+      <AccountCard me={me} m={m} setMe={setMe} />
     </>
   );
 }
@@ -238,6 +168,8 @@ function StartSettings({ m }: { m: Messages }) {
           </Field>
         </CardBody>
       </Card>
+
+      <StyleCard m={m} />
 
       <Card aria-labelledby="ql-title">
         <CardHeader action={links && <span className="fw-t-caption">{m.linkCount(links.length)}</span>}>
@@ -399,5 +331,102 @@ function LinkForm({
         </Button>
       </div>
     </form>
+  );
+}
+
+const styleParts = [".start", ".start-clock", ".start-search", ".start-apps", ".start-app", ".start-links", ".start-link"];
+
+/** The person's own CSS for /start (design: SettingsLinks, Custom style). */
+function StyleCard({ m }: { m: Messages }) {
+  const [saved, setSaved] = useState<string>();
+  const [css, setCss] = useState("");
+  const [busy, setBusy] = useState(false);
+  const [message, setMessage] = useState<{ tone: "success" | "error"; text: string }>();
+
+  useEffect(() => {
+    getJSON<{ css: string }>("/api/start/style").then(
+      (r) => {
+        setSaved(r.css);
+        setCss(r.css);
+      },
+      (e) => setMessage({ tone: "error", text: errorText(m, e) }),
+    );
+  }, [m]);
+
+  async function store(next: string, done: (cleaned: string) => string) {
+    setBusy(true);
+    setMessage(undefined);
+    try {
+      const r = await send<{ css: string }>("PUT", "/api/start/style", { css: next });
+      setSaved(r.css);
+      setCss(r.css);
+      setMessage({ tone: "success", text: done(r.css) });
+    } catch (e) {
+      setMessage({ tone: "error", text: errorText(m, e) });
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  const save = (e: FormEvent) => {
+    e.preventDefault();
+    store(css, (cleaned) => (cleaned === css.trim() ? m.styleSaved : m.styleCleaned));
+  };
+
+  return (
+    <Card aria-labelledby="css-title">
+      <CardHeader action={saved ? <Badge tone="success" dot>{m.styleActive}</Badge> : undefined}>
+        <div>
+          <h2 className="fw-card-title" id="css-title">
+            {m.styleTitle}
+          </h2>
+          <p className="fw-card-sub">{m.styleSub}</p>
+        </div>
+      </CardHeader>
+      <form onSubmit={save}>
+        <CardBody style={{ gap: 14 }}>
+          <Field label={m.styleLabel} id="css-src" help={m.styleHelp}>
+            <Textarea
+              id="css-src"
+              spellCheck={false}
+              className="hub-code"
+              value={css}
+              placeholder={m.styleExample}
+              disabled={saved === undefined}
+              onChange={(e) => setCss(e.target.value)}
+            />
+          </Field>
+          <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+            <span className="fw-t-label">{m.styleParts}</span>
+            <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
+              {styleParts.map((p) => (
+                <code key={p}>{p}</code>
+              ))}
+            </div>
+            <span className="fw-t-caption">{m.stylePartsHelp}</span>
+          </div>
+          {message && <Alert tone={message.tone}>{message.text}</Alert>}
+        </CardBody>
+        <CardFooter style={{ justifyContent: "space-between", flexWrap: "wrap", gap: 8 }}>
+          <Button
+            variant="ghost"
+            size="sm"
+            leadingIcon={<Icon name="restart_alt" />}
+            disabled={!saved || busy}
+            onClick={() => store("", () => m.styleReset)}
+          >
+            {m.resetStyle}
+          </Button>
+          <div style={{ display: "flex", gap: 8 }}>
+            <ButtonLink variant="secondary" size="sm" href="/start" target="_blank" leadingIcon={<Icon name="visibility" />}>
+              {m.preview}
+            </ButtonLink>
+            <Button type="submit" variant="primary" size="sm" loading={busy} disabled={saved === undefined || css === saved}>
+              {m.saveStyle}
+            </Button>
+          </div>
+        </CardFooter>
+      </form>
+    </Card>
   );
 }

@@ -17,6 +17,7 @@ import (
 	"github.com/jurrebuunk/buunk-hub/internal/catalogue"
 	"github.com/jurrebuunk/buunk-hub/internal/favicon"
 	"github.com/jurrebuunk/buunk-hub/internal/i18n"
+	"github.com/jurrebuunk/buunk-hub/internal/kcadmin"
 	"github.com/jurrebuunk/buunk-hub/internal/links"
 	"github.com/jurrebuunk/buunk-hub/internal/pages"
 )
@@ -144,9 +145,60 @@ func (f *fakeFraming) Check(_ context.Context, address string) string {
 
 var testHub, _ = url.Parse("https://hub.example.test")
 
+// fakeAccount is u1's Keycloak account; taken@example.test is someone else's.
+type fakeAccount struct {
+	subs []string
+	set  []kcadmin.Profile
+}
+
+func (f *fakeAccount) Profile(_ context.Context, sub string) (kcadmin.Profile, error) {
+	f.subs = append(f.subs, sub)
+	return kcadmin.Profile{FirstName: "Ann", LastName: "Smit", Email: "ann@example.test", EmailVerified: true}, nil
+}
+func (f *fakeAccount) SetProfile(_ context.Context, sub string, p kcadmin.Profile) (bool, error) {
+	f.subs = append(f.subs, sub)
+	if p.Email == "taken@example.test" {
+		return false, kcadmin.ErrEmailTaken
+	}
+	f.set = append(f.set, p)
+	return p.Email != "ann@example.test", nil
+}
+func (f *fakeAccount) Groups(_ context.Context, sub string) ([]string, error) {
+	f.subs = append(f.subs, sub)
+	return []string{"family"}, nil
+}
+
+// fakeUsers keeps one person's hub-side settings.
+type fakeUsers struct {
+	subs                   []string
+	name, email, lang, css string
+	welcomed               bool
+}
+
+func (f *fakeUsers) SetProfile(_ context.Context, sub, name, email string) error {
+	f.subs, f.name, f.email = append(f.subs, sub), name, email
+	return nil
+}
+func (f *fakeUsers) SetLang(_ context.Context, sub, lang string) error {
+	f.subs, f.lang = append(f.subs, sub), lang
+	return nil
+}
+func (f *fakeUsers) SetWelcomed(_ context.Context, sub string) error {
+	f.subs, f.welcomed = append(f.subs, sub), true
+	return nil
+}
+func (f *fakeUsers) StartCSS(_ context.Context, sub string) (string, error) {
+	f.subs = append(f.subs, sub)
+	return f.css, nil
+}
+func (f *fakeUsers) SetStartCSS(_ context.Context, sub, css string) error {
+	f.subs, f.css = append(f.subs, sub), css
+	return nil
+}
+
 func testDeps(a fakeAuth, fe fs.FS) Deps {
 	return Deps{Auth: a, Apps: testApps, Icons: fakeIcons{}, Pictures: &fakePictures{}, Links: &fakeLinks{},
-		Pages: &fakePages{}, Framing: &fakeFraming{}, Hub: testHub,
+		Pages: &fakePages{}, Framing: &fakeFraming{}, Hub: testHub, Account: &fakeAccount{}, Users: &fakeUsers{},
 		Frontend: fe, Log: slog.New(slog.NewTextHandler(io.Discard, nil))}
 }
 
@@ -226,11 +278,11 @@ func TestFrontend(t *testing.T) {
 
 func TestMe(t *testing.T) {
 	rec := get(t, newServer(fakeAuth{signedIn: true}, frontend), "/api/me")
-	var got map[string]string
+	var got map[string]any
 	if err := json.NewDecoder(rec.Body).Decode(&got); err != nil {
 		t.Fatal(err)
 	}
-	if got["sub"] != "u1" || got["name"] != "Ann" || got["lang"] != "nl" {
+	if got["sub"] != "u1" || got["name"] != "Ann" || got["lang"] != "nl" || got["welcomed"] != false {
 		t.Errorf("got %v", got)
 	}
 }
@@ -411,4 +463,92 @@ func TestPagesAPI(t *testing.T) {
 	if rec := get(t, newServer(fakeAuth{}, frontend), "/api/pages"); rec.Code != 401 {
 		t.Errorf("signed out: %d", rec.Code)
 	}
+}
+
+// The profile is u1's own; a changed email is reported, a taken one refused.
+func TestProfileAPI(t *testing.T) {
+	fa, fu := &fakeAccount{}, &fakeUsers{}
+	d := testDeps(fakeAuth{signedIn: true}, frontend)
+	d.Account, d.Users = fa, fu
+	h := New(d)
+	json := map[string]string{"Content-Type": "application/json"}
+	rec := do(h, "GET", "/api/me/profile", "", nil)
+	if rec.Code != 200 || !strings.Contains(rec.Body.String(), `"groups":["family"]`) {
+		t.Errorf("get: %d %s", rec.Code, rec.Body.String())
+	}
+	for _, tc := range []struct {
+		body string
+		want int
+	}{
+		{`{"firstName":" Ann ","lastName":"de Vries","email":"ann@example.test","lang":"nl"}`, 200},
+		{`{"firstName":"Ann","lastName":"de Vries","email":"new@example.test","lang":""}`, 200},
+		{`{"firstName":"Ann","lastName":"de Vries","email":"taken@example.test"}`, 409},
+		{`{"firstName":"","lastName":"de Vries","email":"ann@example.test"}`, 422},
+		{`{"firstName":"Ann","lastName":"x","email":"not an email"}`, 422},
+		{`{"firstName":"Ann","lastName":"x","email":"Ann <ann@example.test>"}`, 422},
+		{`{"firstName":"Ann","lastName":"x","email":"ann@example.test","lang":"de"}`, 422},
+	} {
+		if rec := do(h, "PUT", "/api/me/profile", tc.body, json); rec.Code != tc.want {
+			t.Errorf("PUT %s: %d, want %d (%s)", tc.body, rec.Code, tc.want, rec.Body.String())
+		}
+	}
+	if len(fa.set) != 2 || fa.set[0].FirstName != "Ann" || fu.name != "Ann de Vries" || fu.email != "new@example.test" ||
+		fu.lang != "" || !fu.welcomed {
+		t.Errorf("saved %+v %+v", fa.set, fu)
+	}
+	if rec := do(h, "POST", "/api/me/welcomed", "", nil); rec.Code != 204 {
+		t.Errorf("welcomed: %d", rec.Code)
+	}
+	for _, sub := range append(fa.subs, fu.subs...) {
+		if sub != "u1" {
+			t.Errorf("a call for %q", sub)
+		}
+	}
+}
+
+// The style is cleaned when saved and lands on the start page.
+func TestStartStyle(t *testing.T) {
+	fu := &fakeUsers{}
+	d := testDeps(fakeAuth{signedIn: true}, frontend)
+	d.Users = fu
+	h := New(d)
+	json := map[string]string{"Content-Type": "application/json"}
+	rec := do(h, "PUT", "/api/start/style", `{"css":".start{--fw-bg:#121a17;background:url(https://evil.test/x)} </style>"}`, json)
+	if rec.Code != 200 || strings.Contains(fu.css, "evil.test") || strings.Contains(fu.css, "<") || !strings.Contains(fu.css, "--fw-bg:#121a17") {
+		t.Errorf("save: %d %s, stored %q", rec.Code, rec.Body.String(), fu.css)
+	}
+	if rec := do(h, "PUT", "/api/start/style", `{"css":"`+strings.Repeat("a", 11<<10)+`"}`, json); rec.Code != 422 {
+		t.Errorf("too large: %d", rec.Code)
+	}
+	body := get(t, h, "/start").Body.String()
+	if !strings.Contains(body, "--fw-bg:#121a17") || strings.Count(body, "</style>") != 2 {
+		t.Errorf("start page style:\n%s", body)
+	}
+	if rec := get(t, h, "/api/start/style"); !strings.Contains(rec.Body.String(), "--fw-bg") {
+		t.Errorf("get: %s", rec.Body.String())
+	}
+}
+
+func TestPageFavicon(t *testing.T) {
+	fp := &fakePages{}
+	d := testDeps(fakeAuth{signedIn: true}, frontend)
+	d.Pages = fp
+	d.Icons = fakeIconsFor("https://issues.example.test")
+	h := New(d)
+	if rec := get(t, h, "/api/pages/1/favicon"); rec.Code != 200 {
+		t.Errorf("own page: %d", rec.Code)
+	}
+	if rec := get(t, h, "/api/pages/7/favicon"); rec.Code != 404 {
+		t.Errorf("someone else's page: %d", rec.Code)
+	}
+}
+
+// fakeIconsFor has an icon for one site only.
+type fakeIconsFor string
+
+func (f fakeIconsFor) Get(_ context.Context, site string) (favicon.Icon, error) {
+	if site == string(f) {
+		return favicon.Icon{Type: "image/png", Data: []byte("png")}, nil
+	}
+	return favicon.Icon{}, favicon.ErrNone
 }

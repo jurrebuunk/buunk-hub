@@ -41,6 +41,8 @@ type Deps struct {
 	Pictures Pictures
 	Links    Links
 	Pages    Pages
+	Account  Account
+	Users    Users
 	Framing  Framing
 	Hub      *url.URL // the hub's public address: a page may not embed it
 	Frontend fs.FS    // the built web app (web.Dist())
@@ -63,6 +65,8 @@ func New(d Deps) http.Handler {
 
 	mux.Handle("GET /start", a.Require(startpage.Handler(d.Apps, func(r *http.Request, sub string) ([]links.Link, error) {
 		return d.Links.List(r.Context(), sub)
+	}, func(r *http.Request, sub string) (string, error) {
+		return d.Users.StartCSS(r.Context(), sub)
 	}, d.Log)))
 
 	mux.Handle("GET /api/me", a.Require(http.HandlerFunc(me)))
@@ -77,13 +81,20 @@ func New(d Deps) http.Handler {
 	mux.Handle("PUT /api/links/{id}", a.Require(http.HandlerFunc(api.updateLink)))
 	mux.Handle("DELETE /api/links/{id}", a.Require(http.HandlerFunc(api.deleteLink)))
 	mux.Handle("GET /api/links/{id}/favicon", a.Require(http.HandlerFunc(api.linkFavicon)))
-	pg := &pagesAPI{pages: d.Pages, framing: d.Framing, hub: d.Hub, fail: api.fail}
+	pa := &profileAPI{account: d.Account, users: d.Users, fail: api.fail, log: d.Log}
+	mux.Handle("GET /api/me/profile", a.Require(http.HandlerFunc(pa.get)))
+	mux.Handle("PUT /api/me/profile", a.Require(http.HandlerFunc(pa.set)))
+	mux.Handle("POST /api/me/welcomed", a.Require(http.HandlerFunc(pa.welcomed)))
+	mux.Handle("GET /api/start/style", a.Require(http.HandlerFunc(pa.getStyle)))
+	mux.Handle("PUT /api/start/style", a.Require(http.HandlerFunc(pa.setStyle)))
+	pg := &pagesAPI{pages: d.Pages, framing: d.Framing, icons: d.Icons, hub: d.Hub, fail: api.fail}
 	mux.Handle("GET /api/pages", a.Require(http.HandlerFunc(pg.list)))
 	mux.Handle("POST /api/pages", a.Require(http.HandlerFunc(pg.add)))
 	mux.Handle("PUT /api/pages/order", a.Require(http.HandlerFunc(pg.reorder)))
 	mux.Handle("GET /api/pages/{id}", a.Require(http.HandlerFunc(pg.get)))
 	mux.Handle("PUT /api/pages/{id}", a.Require(http.HandlerFunc(pg.update)))
 	mux.Handle("DELETE /api/pages/{id}", a.Require(http.HandlerFunc(pg.delete)))
+	mux.Handle("GET /api/pages/{id}/favicon", a.Require(http.HandlerFunc(pg.favicon)))
 	mux.Handle("GET /api/", a.Require(http.NotFoundHandler()))
 	mux.Handle("GET /", a.Require(spa(d.Frontend)))
 	return securityHeaders(a.CheckOrigin(mux))
@@ -98,7 +109,8 @@ func me(w http.ResponseWriter, r *http.Request) {
 		"email":    id.User.Email,
 		"username": id.User.Username,
 		"picture":  id.User.Picture,
-		"lang":     i18n.Pick(id.User.Locale, r.Header.Get("Accept-Language")),
+		"lang":     i18n.Pick(id.User.Language(), r.Header.Get("Accept-Language")),
+		"welcomed": id.User.Welcomed,
 	})
 }
 
@@ -115,7 +127,7 @@ func appsHandler(apps []catalogue.App) http.Handler {
 	}
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		id, _ := auth.FromContext(r.Context())
-		lang := i18n.Pick(id.User.Locale, r.Header.Get("Accept-Language"))
+		lang := i18n.Pick(id.User.Language(), r.Header.Get("Accept-Language"))
 		out := []app{}
 		for _, a := range apps {
 			if a.VisibleTo(id.Roles) {

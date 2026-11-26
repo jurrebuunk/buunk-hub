@@ -6,35 +6,36 @@
 <meta name="color-scheme" content="dark light">
 <title>{{.T.Title}} · buunk hub</title>
 <style>
-/* flatwork-saas tokens (its tokens.json), dark by default. */
-:root{--bg:#1b1818;--surface:#221e1e;--surface-2:#2a2525;--border:#3a3434;--border-strong:#4a4343;--heading:#ece9e9;--text:#c4c1c1;--muted:#9a9595;--accent:#8aa1a8;--on-accent:#141212;--focus:#a5bbc2;--cf:#f38020}
-@media (prefers-color-scheme:light){:root{--bg:#f6f5f5;--surface:#fff;--surface-2:#f1efef;--border:#e4e0e0;--border-strong:#d3cdcd;--heading:#1b1818;--text:#3a3535;--muted:#625c5c;--accent:#4b6670;--on-accent:#fff;--focus:#4b6670}}
+/* flatwork-saas tokens (its tokens.json), dark by default. A person's own
+   style can override any of them on .start. */
+:root{--fw-r-sm:6px;--fw-r-md:9px;--fw-r-lg:12px;--fw-r-full:999px;--fw-bg:#1b1818;--fw-surface:#221e1e;--fw-surface-2:#2a2525;--fw-border:#3a3434;--fw-border-strong:#4a4343;--fw-heading:#ece9e9;--fw-text:#c4c1c1;--fw-muted:#9a9595;--fw-accent:#8aa1a8;--fw-on-accent:#141212;--fw-focus:#a5bbc2;--fw-cf:#f38020}
+@media (prefers-color-scheme:light){:root{--fw-bg:#f6f5f5;--fw-surface:#fff;--fw-surface-2:#f1efef;--fw-border:#e4e0e0;--fw-border-strong:#d3cdcd;--fw-heading:#1b1818;--fw-text:#3a3535;--fw-muted:#625c5c;--fw-accent:#4b6670;--fw-on-accent:#fff;--fw-focus:#4b6670}}
 *{box-sizing:border-box}
-html,body{margin:0;background:var(--bg)}
-body{color:var(--text);font:15px/1.5 ui-sans-serif,system-ui,-apple-system,"Segoe UI",sans-serif}
+html,body{margin:0;background:var(--fw-bg)}
+body{color:var(--fw-text);font:15px/1.5 ui-sans-serif,system-ui,-apple-system,"Segoe UI",sans-serif}
 a{color:inherit}
-a:focus-visible,button:focus-visible,input:focus-visible{outline:2px solid var(--focus);outline-offset:2px}
-.start{position:relative;min-height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:72px 20px}
+a:focus-visible,button:focus-visible,input:focus-visible{outline:2px solid var(--fw-focus);outline-offset:2px}
+.start{position:relative;min-height:100vh;background:var(--fw-bg);display:flex;flex-direction:column;align-items:center;justify-content:center;padding:72px 20px}
 .me{position:absolute;top:14px;right:14px;display:grid;place-content:center;width:44px;height:44px;text-decoration:none}
-.avatar{display:grid;place-content:center;width:32px;height:32px;border-radius:50%;overflow:hidden;background:var(--surface-2);border:1px solid var(--border-strong);color:var(--heading);font-size:12px;font-weight:600}
+.avatar{display:grid;place-content:center;width:32px;height:32px;border-radius:50%;overflow:hidden;background:var(--fw-surface-2);border:1px solid var(--fw-border-strong);color:var(--fw-heading);font-size:12px;font-weight:600}
 .avatar img{width:100%;height:100%;object-fit:cover}
 .inner{width:100%;max-width:680px;display:flex;flex-direction:column;align-items:center;gap:20px;margin-top:-40px}
-.start-clock{display:flex;align-items:center;gap:10px;margin:0;min-height:22px;color:var(--muted);font-size:14px}
-.start-clock time{font-family:ui-monospace,"IBM Plex Mono",monospace;font-size:15px;color:var(--heading)}
-.start-clock .dot{width:3px;height:3px;border-radius:50%;background:var(--border-strong)}
+.start-clock{display:flex;align-items:center;gap:10px;margin:0;min-height:22px;color:var(--fw-muted);font-size:14px}
+.start-clock time{font-family:ui-monospace,"IBM Plex Mono",monospace;font-size:15px;color:var(--fw-heading)}
+.start-clock .dot{width:3px;height:3px;border-radius:50%;background:var(--fw-border-strong)}
 .start-search{width:100%}
 .sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
-.box{display:flex;align-items:center;height:60px;border-radius:12px;background:var(--surface);border:1px solid var(--border-strong)}
-.box:focus-within{border-color:var(--focus)}
-.box svg{flex:none;margin:0 4px 0 20px;fill:var(--muted)}
-.box input{flex:1;min-width:0;height:58px;border:0;background:transparent;color:var(--heading);font:inherit;font-size:17px;padding:0 8px}
+.box{display:flex;align-items:center;height:60px;border-radius:var(--fw-r-lg);background:var(--fw-surface);border:1px solid var(--fw-border-strong)}
+.box:focus-within{border-color:var(--fw-focus)}
+.box svg{flex:none;margin:0 4px 0 20px;fill:var(--fw-muted)}
+.box input{flex:1;min-width:0;height:58px;border:0;background:transparent;color:var(--fw-heading);font:inherit;font-size:17px;padding:0 8px}
 .box input:focus{outline:none}
-.box button{display:grid;place-content:center;width:44px;height:44px;margin-right:8px;border:0;border-radius:9px;background:var(--accent);color:var(--on-accent);cursor:pointer}
+.box button{display:grid;place-content:center;width:44px;height:44px;margin-right:8px;border:0;border-radius:var(--fw-r-md);background:var(--fw-accent);color:var(--fw-on-accent);cursor:pointer}
 .box button svg{margin:0;fill:currentColor}
 .start-apps,.start-links{display:flex;flex-wrap:wrap;justify-content:center;margin:0;padding:0;list-style:none}
 .start-apps{gap:8px;padding-top:8px}
-.start-app{display:inline-flex;align-items:center;gap:10px;height:44px;padding:0 16px 0 14px;border:1px solid var(--border-strong);border-radius:999px;background:var(--surface);color:var(--heading);font-size:14px;font-weight:500;text-decoration:none}
-.start-app:hover,.start-link:hover{background:var(--surface-2)}
+.start-app{display:inline-flex;align-items:center;gap:10px;height:44px;padding:0 16px 0 14px;border:1px solid var(--fw-border-strong);border-radius:var(--fw-r-full);background:var(--fw-surface);color:var(--fw-heading);font-size:14px;font-weight:500;text-decoration:none}
+.start-app:hover,.start-link:hover{background:var(--fw-surface-2)}
 /* A site's own icon; the letter shows only when there is none (the image
    removes itself when it fails to load). */
 .ico{display:grid;place-content:center;flex:none}
@@ -42,13 +43,17 @@ a:focus-visible,button:focus-visible,input:focus-visible{outline:2px solid var(-
 /* Dark: a thin light edge, so a black icon (GitHub's) stays visible. */
 @media (prefers-color-scheme:dark){.ico img{filter:drop-shadow(0 0 1px rgba(255,255,255,.7))}}
 .ico:has(img) .letter,.ico:has(img) .initial{display:none}
-.initial{width:22px;text-align:center;font-size:14px;font-weight:600;color:var(--heading)}
-.start-app .cf{fill:var(--cf)}
+.initial{width:22px;text-align:center;font-size:14px;font-weight:600;color:var(--fw-heading)}
+.start-app .cf{fill:var(--fw-cf)}
 .start-links{gap:4px 6px}
-.start-link{display:inline-flex;align-items:center;gap:10px;height:40px;padding:0 14px 0 10px;border-radius:999px;color:var(--text);font-size:14px;text-decoration:none}
-.letter{display:grid;place-content:center;width:26px;height:26px;border-radius:6px;background:var(--surface-2);border:1px solid var(--border);font-family:ui-monospace,monospace;font-size:12px;color:var(--heading)}
-.empty{margin:0;color:var(--muted);font-size:14px}
+.start-link{display:inline-flex;align-items:center;gap:10px;height:40px;padding:0 14px 0 10px;border-radius:var(--fw-r-full);color:var(--fw-text);font-size:14px;text-decoration:none}
+.letter{display:grid;place-content:center;width:26px;height:26px;border-radius:var(--fw-r-sm);background:var(--fw-surface-2);border:1px solid var(--fw-border);font-family:ui-monospace,monospace;font-size:12px;color:var(--fw-heading)}
+.empty{margin:0;color:var(--fw-muted);font-size:14px}
 </style>
+{{/* The person's own style (Settings, Start page), after ours. */}}
+{{if .Style}}<style>
+{{.Style}}
+</style>{{end}}
 </head>
 <body>
 <div class="start">

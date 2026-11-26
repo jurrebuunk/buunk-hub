@@ -54,10 +54,12 @@ type link struct {
 }
 
 // Handler serves /start; it must run behind auth.Require.
-func Handler(apps []catalogue.App, list func(r *http.Request, sub string) ([]links.Link, error), log *slog.Logger) http.Handler {
+// style returns the person's own CSS, already cleaned (internal/startcss).
+func Handler(apps []catalogue.App, list func(r *http.Request, sub string) ([]links.Link, error),
+	style func(r *http.Request, sub string) (string, error), log *slog.Logger) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		id, _ := auth.FromContext(r.Context())
-		lang := i18n.Pick(id.User.Locale, r.Header.Get("Accept-Language"))
+		lang := i18n.Pick(id.User.Language(), r.Header.Get("Accept-Language"))
 		t := allTexts[lang]
 
 		var mine []app
@@ -80,6 +82,11 @@ func Handler(apps []catalogue.App, list func(r *http.Request, sub string) ([]lin
 			}
 			ls = append(ls, link{l.ID, l.Title, l.URL, host, firstLetter(l.Title)})
 		}
+		css, err := style(r, id.User.Sub)
+		if err != nil {
+			// The page works without it.
+			log.Warn("start page style", "err", err)
+		}
 		name := id.User.Name
 		if name == "" {
 			name = id.User.Email
@@ -89,6 +96,9 @@ func Handler(apps []catalogue.App, list func(r *http.Request, sub string) ([]lin
 			"Lang": lang, "T": t, "Apps": mine, "Links": ls,
 			"SettingsLabel": strings.Replace(t.Settings, "%s", name, 1),
 			"Picture":       id.User.Picture, "Initials": initials(name),
+			// Cleaned when saved: no "<", so it can't end the element, and the
+			// CSP below loads nothing it names from elsewhere.
+			"Style": template.CSS(css),
 		}); err != nil {
 			log.Error("start page", "err", err)
 			http.Error(w, "internal error", http.StatusInternalServerError)

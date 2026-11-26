@@ -5,6 +5,7 @@ import { Home } from "./Home";
 import { Settings } from "./Settings";
 import { isLang, pickLang, t, type Lang } from "./i18n";
 import { PageDialog, PageView } from "./Pages";
+import { WelcomeDialog } from "./Profile";
 import { navigate, usePath } from "./router";
 import { Shell } from "./Shell";
 import { WarpGuide } from "./WarpGuide";
@@ -22,12 +23,19 @@ export function App() {
   const [state, setState] = useState<State>({ kind: "loading" });
   const [attempt, setAttempt] = useState(0);
   const [creating, setCreating] = useState(false);
+  // The first-visit dialog: by itself until finished or skipped, and from
+  // Home's "Finish your profile" link.
+  const [welcoming, setWelcoming] = useState(false);
   const path = usePath();
 
   useEffect(() => {
     let cancelled = false;
     Promise.all([getJSON<Me>("/api/me"), getJSON<HubApp[]>("/api/apps"), getJSON<HubPage[]>("/api/pages")]).then(
-      ([me, apps, pages]) => !cancelled && setState({ kind: "ready", me, apps, pages }),
+      ([me, apps, pages]) => {
+        if (cancelled) return;
+        setState({ kind: "ready", me, apps, pages });
+        if (!me.welcomed) setWelcoming(true);
+      },
       () => !cancelled && setState({ kind: "failed" }),
     );
     return () => {
@@ -89,7 +97,18 @@ export function App() {
           ) : path === "/settings" || path === "/settings/start" ? (
             <Settings me={state.me} m={m} path={path} setMe={(me) => setState({ ...state, me })} />
           ) : (
-            <Home me={state.me} m={m} apps={state.apps} reach={reach} />
+            <Home
+              me={state.me}
+              m={m}
+              apps={state.apps}
+              reach={reach}
+              pages={state.pages}
+              onNewPage={() => setCreating(true)}
+              onFinishProfile={() => setWelcoming(true)}
+            />
+          )}
+          {welcoming && (
+            <WelcomeDialog m={m} me={state.me} setMe={(me) => setState({ ...state, me })} onClose={() => setWelcoming(false)} />
           )}
           {creating && (
             <PageDialog

@@ -29,6 +29,7 @@ type Framing interface {
 type pagesAPI struct {
 	pages   Pages
 	framing Framing
+	icons   Favicons
 	hub     *url.URL
 	fail    func(w http.ResponseWriter, what string, err error)
 }
@@ -166,4 +167,26 @@ func (a *pagesAPI) reorder(w http.ResponseWriter, r *http.Request) {
 	default:
 		w.WriteHeader(http.StatusNoContent)
 	}
+}
+
+// favicon serves the icon of the site one of the person's own pages shows
+// (its origin); 404 when it has none or the page isn't theirs.
+func (a *pagesAPI) favicon(w http.ResponseWriter, r *http.Request) {
+	id, _ := auth.FromContext(r.Context())
+	n, ok := linkID(r)
+	if !ok {
+		http.NotFound(w, r)
+		return
+	}
+	p, err := a.pages.Get(r.Context(), id.User.Sub, n)
+	if err != nil {
+		http.NotFound(w, r)
+		return
+	}
+	u, err := url.Parse(p.URL)
+	if err != nil {
+		http.NotFound(w, r)
+		return
+	}
+	serveIcon(w, r, a.icons, (&url.URL{Scheme: u.Scheme, Host: u.Host}).String())
 }

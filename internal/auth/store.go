@@ -9,9 +9,23 @@ import (
 // ErrNoSession is returned when a session doesn't exist (or has expired).
 var ErrNoSession = errors.New("no such session")
 
-// User is the cached profile of someone who signed in.
+// User is the cached profile of someone who signed in. Lang and Welcomed
+// are the hub's own; the rest comes from their ID token.
 type User struct {
 	Sub, Name, Username, Email, Locale, Picture string
+	// Lang is the language they chose in the hub ("" = not chosen).
+	Lang string
+	// Welcomed: they finished or skipped the first-visit profile dialog.
+	Welcomed bool
+}
+
+// Language is what the hub speaks to them in before Accept-Language: the
+// language they chose, else their account's locale.
+func (u User) Language() string {
+	if u.Lang != "" {
+		return u.Lang
+	}
+	return u.Locale
 }
 
 // Roles are client roles from the ID token's resource_access claim:

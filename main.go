@@ -55,6 +55,7 @@ func run(log *slog.Logger) error {
 		return fmt.Errorf("database: %w", err)
 	}
 	defer pool.Close()
+	kc := kcadmin.New(ctx, cfg.KeycloakAdminURL, cfg.OIDCIssuer+"/protocol/openid-connect/token", cfg.OIDCClientID, cfg.OIDCClientSecret)
 	a, err := auth.New(ctx, auth.Config{
 		PublicURL:    cfg.PublicURL,
 		Issuer:       cfg.OIDCIssuer,
@@ -77,13 +78,15 @@ func run(log *slog.Logger) error {
 			Icons: favicon.NewCache(log),
 			Pictures: &picture.Service{
 				Objects:   objects.New(cfg.S3Endpoint, cfg.S3Bucket, cfg.S3AccessKey, cfg.S3SecretKey),
-				Keycloak:  kcadmin.New(ctx, cfg.KeycloakAdminURL, cfg.OIDCIssuer+"/protocol/openid-connect/token", cfg.OIDCClientID, cfg.OIDCClientSecret),
+				Keycloak:  kc,
 				Users:     auth.PGStore{DB: pool},
 				PublicURL: cfg.PublicURL,
 				Log:       log,
 			},
 			Links:    links.Store{DB: pool},
 			Pages:    pages.Store{DB: pool},
+			Account:  kc,
+			Users:    auth.PGStore{DB: pool},
 			Framing:  pages.NewFraming(cfg.PublicURL, log),
 			Hub:      cfg.PublicURL,
 			Frontend: web.Dist(),

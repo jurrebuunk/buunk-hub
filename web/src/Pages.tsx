@@ -34,6 +34,23 @@ export function host(url: string): string {
   }
 }
 
+/** A page's site icon (its favicon), or the page icon when it has none.
+ *  The address is in the URL so a changed page fetches its new icon. */
+export function PageIcon({ page, size = 20 }: { page: HubPage; size?: number }) {
+  const [failed, setFailed] = useState<string>();
+  if (failed === page.url) return <Icon name="article" size={size} />;
+  return (
+    <img
+      className="hub-favicon"
+      src={`/api/pages/${page.id}/favicon?site=${encodeURIComponent(new URL(page.url).host)}`}
+      alt=""
+      width={size}
+      height={size}
+      onError={() => setFailed(page.url)}
+    />
+  );
+}
+
 /** The address without https://, for the field that has it as an affix. */
 const bare = (url: string) => url.replace(/^https:\/\//i, "");
 

@@ -8,6 +8,19 @@ export interface Me {
   email: string;
   picture: string;
   lang: string;
+  /** Finished or skipped the first-visit profile dialog. */
+  welcomed: boolean;
+}
+
+/** The account as Keycloak has it, plus the language chosen in the hub. */
+export interface Profile {
+  firstName: string;
+  lastName: string;
+  email: string;
+  emailVerified: boolean;
+  /** "", "en" or "nl"; "" follows the account and the browser. */
+  lang: string;
+  groups: string[];
 }
 
 export interface App {
