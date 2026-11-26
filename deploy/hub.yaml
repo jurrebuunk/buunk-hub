@@ -1,0 +1,79 @@
+# buunk-hub (https://hub.buunk.org). Stateless: sessions and users are in
+# hub-db, so two replicas in different zones share the work and survive a
+# host going down. Settings are environment variables (README.md); the hub
+# doesn't log them.
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: hub
+spec:
+  replicas: 2
+  selector:
+    matchLabels: { app: hub }
+  template:
+    metadata:
+      labels: { app: hub }
+    spec:
+      topologySpreadConstraints:
+        - maxSkew: 1
+          topologyKey: topology.kubernetes.io/zone
+          whenUnsatisfiable: DoNotSchedule
+          labelSelector:
+            matchLabels: { app: hub }
+      securityContext:
+        runAsNonRoot: true
+        seccompProfile: { type: RuntimeDefault }
+      containers:
+        - name: hub
+          image: ghcr.io/jurrebuunk/buunk-hub:0.3.0@sha256:0af1d42f8f095b84f27f5913432bf2a94c89936c6b29b5d6b06b63a983d9794d
+          ports: [{ name: http, containerPort: 8080 }]
+          env:
+            - { name: HUB_PUBLIC_URL, value: https://hub.buunk.org }
+            - { name: HUB_OIDC_ISSUER, value: https://auth.buunk.org/realms/hgd1 }
+            - { name: HUB_OIDC_CLIENT_ID, value: hub }
+            - { name: HUB_CATALOGUE, value: /etc/hub/catalogue.yaml }
+            - name: HUB_DATABASE_URL
+              valueFrom: { secretKeyRef: { name: hub-db-app, key: uri } }
+            - name: HUB_OIDC_CLIENT_SECRET
+              valueFrom: { secretKeyRef: { name: hub-oidc, key: client-secret } }
+            - name: HUB_SESSION_KEY
+              valueFrom: { secretKeyRef: { name: hub-session, key: session-key } }
+            # Go keeps its heap under the limit instead of being killed.
+            - { name: GOMEMLIMIT, value: 100MiB }
+          readinessProbe:
+            httpGet: { path: /healthz, port: http }
+            periodSeconds: 5
+          livenessProbe:
+            httpGet: { path: /healthz, port: http }
+            periodSeconds: 20
+            failureThreshold: 3
+          resources:
+            requests: { cpu: 10m, memory: 32Mi }
+            limits: { memory: 128Mi }
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities: { drop: [ALL] }
+          volumeMounts:
+            - { name: catalogue, mountPath: /etc/hub, readOnly: true }
+      volumes:
+        - name: catalogue
+          configMap: { name: hub-catalogue }
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: hub
+spec:
+  selector: { app: hub }
+  ports: [{ port: 80, targetPort: http }]
+---
+# Draining a node (or a host update) never takes both replicas at once.
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: hub
+spec:
+  minAvailable: 1
+  selector:
+    matchLabels: { app: hub }

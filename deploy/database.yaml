@@ -1,0 +1,11 @@
+# The hub's Postgres: users and sessions. Two servers on different hosts,
+# backed up to s3://pg-backups/hub-db/ (from components/postgres in hgd1-k8s).
+apiVersion: postgresql.cnpg.io/v1
+kind: Cluster
+metadata:
+  name: hub-db
+spec:
+  instances: 2
+  storage: { size: 1Gi }
+  bootstrap:
+    initdb: { database: hub, owner: hub }

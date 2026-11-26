@@ -1,0 +1,22 @@
+# buunk-hub on the hgd1 cluster. Flux fetches this repo with hgd1-k8s's
+# components/ added (GitRepository include in hgd1-k8s/apps/hub.yaml), so
+# ../components/postgres gives the database its defaults and backups.
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+namespace: hub
+resources:
+  - namespace.yaml
+  - database.yaml
+  - oidc.sops.yaml
+  - session.sops.yaml
+  - hub.yaml
+components:
+  - ../components/postgres
+  # Pods reach the cluster, the internet (Keycloak at auth.buunk.org) and
+  # S3, nothing else on the site.
+  - ../components/egress/default
+  - ../components/egress/s3
+# The apps on Home. Generated, so a change to catalogue.yaml rolls the pods.
+configMapGenerator:
+  - name: hub-catalogue
+    files: [catalogue.yaml]

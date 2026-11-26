@@ -1,0 +1,32 @@
+# Seals the sign-in cookie and the tokens in the database (HUB_SESSION_KEY).
+# Changing it signs everyone out.
+apiVersion: v1
+kind: Secret
+metadata:
+    name: hub-session
+stringData:
+    session-key: ENC[AES256_GCM,data:aRYb5wy3QMCc13nuCB0dwSputo2SckBj1m2SDmF+oT5GX4QnO0Ud0mjPZdg=,iv:/GCfDeklO40LHImKqKiWmnGSUjhcoQrqsOHi/cAnBp0=,tag:YKPXSXidFQm0NT1SVdVMVA==,type:str]
+sops:
+    age:
+        - enc: |
+            -----BEGIN AGE ENCRYPTED FILE-----
+            YWdlLWVuY3J5cHRpb24ub3JnL3YxCi0+IFgyNTUxOSB2ZU8wMzF2ODI0NitGSkll
+            RDlmb3pWZVd2eHJSdW4zM3ZRaEtLK2M5c0VJCk8zMXRKcU1NdXdlRFlxNXMwSlQz
+            RUZWa25ZNFh3eFViWXY4dktETFpHTEkKLS0tIHA0cm5WRit6T0Z6UDdQMWxTK2hq
+            blNIdy9WbVdEOC9nSDRYRnQ3ZmJhNzQKV+1XrMfYBs6P/Fj278u/RjYvwF452zAo
+            2hzDVtoW1XEqmcyxCoEfC29+7rNAMiwgf1K+Ry7DPyUYJ4Ui2IJ+2g==
+            -----END AGE ENCRYPTED FILE-----
+          recipient: age1fharluqqx8n8clz5an6qte8hgqrkawjz6sy23humd2awzr0vq5tsvv6xgf
+        - enc: |
+            -----BEGIN AGE ENCRYPTED FILE-----
+            YWdlLWVuY3J5cHRpb24ub3JnL3YxCi0+IFgyNTUxOSBYb0xobXF6RjVaZjkwbUs2
+            d2pLTXZ0VUkvTDFjUzRsRFNDbkh5eFZPU3c4ClhWWVhOR1lMUGRBdEJhMHUwTUV0
+            L2psT205VEFDd3Mwd1VPRzVXT0F3OHcKLS0tIFhXMzBvcDJMdU1pOFJCODhTZVZL
+            SlE5Y3g1U0VTRERScHdKb1dhR0RhbFkKho57vOQPKJqRnGcxsLGW8Skll3jQmcW0
+            LbyR9WDuO05G7k8uu//1cML6wl899qt83zvdQPPk6EjEPgKXSCmuSg==
+            -----END AGE ENCRYPTED FILE-----
+          recipient: age14lsxk30xq82ywvkf4l8psk55a0tkls87qx3k6u0zllyjt9tpwawsdgycxx
+    encrypted_regex: ^(data|stringData)$
+    lastmodified: "2026-11-26T14:03:17Z"
+    mac: ENC[AES256_GCM,data:OMxhmxppwsJvPtEhD6yVqBjQ/qml/X6c/0r0QAVmUX2Bs7sqDxhS0mqS1XVW9mcDimsCD0y7gBXh/UsVh5oKVhmvu7qkdb7OetoIOIUi2bVjV0jUtctOr+yurOYiTnilu0DuOFXRZjU5Vw9sMO7dI+NTJYT1ExC9BR55Jt57IjE=,iv:jUgGZMa0Y12Lbc9F8PK/rYFNG7KcUjo7Q2x38P9ZJSk=,tag:XVxKRQ0bgkbLeB6Da0jMQg==,type:str]
+    version: 3.13.3

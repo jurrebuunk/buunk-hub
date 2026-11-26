@@ -1,0 +1,32 @@
+# The client secret of the Keycloak client hub (hgd1-k8s
+# platform/keycloak-realm/client-hub.sops.yaml has the same value).
+apiVersion: v1
+kind: Secret
+metadata:
+    name: hub-oidc
+stringData:
+    client-secret: ENC[AES256_GCM,data:Uqw/PUPw6B1a0ZJJCPZ254jnRq/MZZWMA7T0SvX6wYKiPszLsBT7LLkWUuxEAI7Nmzp4vP1Rfrhaf6vHfB3hjA==,iv:XJWITMM/1WxNuzVcVqKa6D5aVS5bkgQ7nLP7RwjMvBY=,tag:WlCjaxo65CfP/Gsg+7iN2g==,type:str]
+sops:
+    age:
+        - enc: |
+            -----BEGIN AGE ENCRYPTED FILE-----
+            YWdlLWVuY3J5cHRpb24ub3JnL3YxCi0+IFgyNTUxOSB2dzRCTm5qdFpWZ0x4SGRE
+            dFRWcm00Z1Fray9ZemxxQzV3WFdXWUo3VlRFCjRZa3Y0djN5ZGp1dXVmbEF2Y2xS
+            c3FXdUNFQUJBYVBmcXpmeERLcEQrSXcKLS0tIFo4T2hOQXlmUzhjMVNTRHoxaWdB
+            Tzd3SDM3RUFuUStvcVlGMDMxamxmVFEKu4PJKC7M0XLVUhiuSHf7LeizV3y2hAer
+            18Lx+wa2hHH6C9vr43FGObl334NJjE93LHpEFoKvB1GAgb1ecqeebw==
+            -----END AGE ENCRYPTED FILE-----
+          recipient: age1fharluqqx8n8clz5an6qte8hgqrkawjz6sy23humd2awzr0vq5tsvv6xgf
+        - enc: |
+            -----BEGIN AGE ENCRYPTED FILE-----
+            YWdlLWVuY3J5cHRpb24ub3JnL3YxCi0+IFgyNTUxOSBUSCt4aHF6WTMySlR3L09s
+            T1NIaTF5QzNhSU1lVW13UFlOd0twZVRHNldJCkt3dGFTd1pDelEvenJEYWFCQUx4
+            bkU0bTdxbGpTeDVnTEVuc1Y2Qzl2aEkKLS0tIERWYXovVWVZcVY4bGhaVVFWNnZi
+            czV5dzdndEZXY21XY2VHMTVkb3dCQVkKVnrsdADxKWgX2toIuyOARFRgBmEVv6jC
+            +WIP/YyTGl+xHuhcKHykFOnDDGVBLKrC0evjIpm0eiKXbxWnCshGbQ==
+            -----END AGE ENCRYPTED FILE-----
+          recipient: age14lsxk30xq82ywvkf4l8psk55a0tkls87qx3k6u0zllyjt9tpwawsdgycxx
+    encrypted_regex: ^(data|stringData)$
+    lastmodified: "2026-11-26T14:03:17Z"
+    mac: ENC[AES256_GCM,data:i/qLzA+i6G/HzNnn9WrmbxQ7Lun+jMIX6I3K5E245GxM0zUfBgT2OIDAKopOUAhwhSoF341Eg91idxzzqIky0VZys3/Md62mYJ0Hv78PhOJn6PgbqCiIKDHYSfpkQeETmUophhm8Dt4m78epdVQO/qHpgSlLSuqsmBxXavs6lgQ=,iv:HfTDLE0o8s4NQMjWwqtJsBNpYpZ4WcesedkWOMRl0VQ=,tag:mN5M4S/Et1yq8r9h8hWtbg==,type:str]
+    version: 3.13.3
