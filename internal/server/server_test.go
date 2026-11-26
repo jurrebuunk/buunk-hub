@@ -61,6 +61,13 @@ func (f *fakeLinks) List(_ context.Context, sub string) ([]links.Link, error) {
 	f.subs = append(f.subs, sub)
 	return []links.Link{{ID: 1, Title: "NOS", URL: "https://nos.nl"}}, nil
 }
+func (f *fakeLinks) Get(_ context.Context, sub string, id int64) (links.Link, error) {
+	f.subs = append(f.subs, sub)
+	if id != 1 {
+		return links.Link{}, links.ErrNotFound
+	}
+	return links.Link{ID: 1, Title: "Files", URL: "https://files.example.test/some/page"}, nil
+}
 func (f *fakeLinks) Add(_ context.Context, sub, title, url string) (links.Link, error) {
 	f.subs = append(f.subs, sub)
 	return links.Link{ID: 2, Title: title, URL: url}, nil
@@ -237,6 +244,9 @@ func TestLinksAPI(t *testing.T) {
 		{"PUT", "/api/links/abc", `{"title":"NOS","url":"https://nos.nl"}`, 400},
 		{"PUT", "/api/links/order", `{"ids":[1]}`, 204},
 		{"DELETE", "/api/links/1", "", 204},
+		// The icon of the link's site (its origin), only for one's own link.
+		{"GET", "/api/links/1/favicon", "", 200},
+		{"GET", "/api/links/2/favicon", "", 404},
 	} {
 		if rec := do(h, tc.method, tc.path, tc.body, json); rec.Code != tc.want {
 			t.Errorf("%s %s: %d, want %d (%s)", tc.method, tc.path, rec.Code, tc.want, rec.Body.String())

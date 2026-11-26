@@ -7,6 +7,7 @@ import (
 	"io"
 	"log/slog"
 	"net/http"
+	"net/url"
 	"strconv"
 
 	"github.com/jurrebuunk/buunk-hub/internal/auth"
@@ -24,6 +25,7 @@ type Pictures interface {
 // Links keeps quick links (internal/links); every call is for one person.
 type Links interface {
 	List(ctx context.Context, sub string) ([]links.Link, error)
+	Get(ctx context.Context, sub string, id int64) (links.Link, error)
 	Add(ctx context.Context, sub, title, url string) (links.Link, error)
 	Update(ctx context.Context, sub string, id int64, title, url string) error
 	Delete(ctx context.Context, sub string, id int64) error
@@ -33,6 +35,7 @@ type Links interface {
 type api struct {
 	pictures Pictures
 	links    Links
+	icons    Favicons
 	log      *slog.Logger
 }
 
@@ -194,4 +197,26 @@ func (a *api) reorderLinks(w http.ResponseWriter, r *http.Request) {
 	default:
 		w.WriteHeader(http.StatusNoContent)
 	}
+}
+
+// linkFavicon serves the icon of one of the person's own links (the start
+// page shows them). Only theirs: the link is looked up by their sub.
+func (a *api) linkFavicon(w http.ResponseWriter, r *http.Request) {
+	id, _ := auth.FromContext(r.Context())
+	n, ok := linkID(r)
+	if !ok {
+		http.NotFound(w, r)
+		return
+	}
+	l, err := a.links.Get(r.Context(), id.User.Sub, n)
+	if err != nil {
+		http.NotFound(w, r)
+		return
+	}
+	u, err := url.Parse(l.URL)
+	if err != nil {
+		http.NotFound(w, r)
+		return
+	}
+	serveIcon(w, r, a.icons, (&url.URL{Scheme: u.Scheme, Host: u.Host}).String())
 }

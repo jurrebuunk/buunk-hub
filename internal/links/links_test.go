@@ -81,6 +81,12 @@ func TestStoreOwnership(t *testing.T) {
 	a2, _ := s.Add(ctx, "ann", "Buienradar", "https://buienradar.nl")
 	b1, _ := s.Add(ctx, "bob", "Bob's", "https://bob.example.test")
 
+	if _, err := s.Get(ctx, "bob", a1.ID); !errors.Is(err, ErrNotFound) {
+		t.Errorf("bob got ann's link: %v", err)
+	}
+	if l, err := s.Get(ctx, "ann", a1.ID); err != nil || l.URL != "https://nos.nl" {
+		t.Errorf("ann's own link: %v %v", l, err)
+	}
 	if got, _ := s.List(ctx, "bob"); len(got) != 1 || got[0].ID != b1.ID {
 		t.Errorf("bob sees %v", got)
 	}

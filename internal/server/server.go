@@ -64,7 +64,7 @@ func New(d Deps) http.Handler {
 	mux.Handle("GET /api/me", a.Require(http.HandlerFunc(me)))
 	mux.Handle("GET /api/apps", a.Require(appsHandler(d.Apps)))
 	mux.Handle("GET /api/apps/{id}/favicon", a.Require(faviconHandler(d.Apps, d.Icons)))
-	api := &api{pictures: d.Pictures, links: d.Links, log: d.Log}
+	api := &api{pictures: d.Pictures, links: d.Links, icons: d.Icons, log: d.Log}
 	mux.Handle("POST /api/me/picture", a.Require(http.HandlerFunc(api.uploadPicture)))
 	mux.Handle("DELETE /api/me/picture", a.Require(http.HandlerFunc(api.removePicture)))
 	mux.Handle("GET /api/links", a.Require(http.HandlerFunc(api.listLinks)))
@@ -72,6 +72,7 @@ func New(d Deps) http.Handler {
 	mux.Handle("PUT /api/links/order", a.Require(http.HandlerFunc(api.reorderLinks)))
 	mux.Handle("PUT /api/links/{id}", a.Require(http.HandlerFunc(api.updateLink)))
 	mux.Handle("DELETE /api/links/{id}", a.Require(http.HandlerFunc(api.deleteLink)))
+	mux.Handle("GET /api/links/{id}/favicon", a.Require(http.HandlerFunc(api.linkFavicon)))
 	mux.Handle("GET /api/", a.Require(http.NotFoundHandler()))
 	mux.Handle("GET /", a.Require(spa(d.Frontend)))
 	return securityHeaders(a.CheckOrigin(mux))
@@ -123,22 +124,28 @@ func faviconHandler(apps []catalogue.App, icons Favicons) http.Handler {
 			if a.ID != r.PathValue("id") || !a.VisibleTo(id.Roles) {
 				continue
 			}
-			icon, err := icons.Get(r.Context(), a.URL)
-			if err != nil {
-				http.NotFound(w, r)
-				return
-			}
-			h := w.Header()
-			h.Set("Content-Type", icon.Type)
-			h.Set("Cache-Control", "private, max-age=86400")
-			// Another site's file on our origin: an SVG opened directly
-			// must not run scripts here.
-			h.Set("Content-Security-Policy", "default-src 'none'; style-src 'unsafe-inline'; sandbox")
-			w.Write(icon.Data)
+			serveIcon(w, r, icons, a.URL)
 			return
 		}
 		http.NotFound(w, r)
 	})
+}
+
+// serveIcon sends a site's icon, or 404 when it has none (the page then
+// shows a letter or the catalogue's icon).
+func serveIcon(w http.ResponseWriter, r *http.Request, icons Favicons, site string) {
+	icon, err := icons.Get(r.Context(), site)
+	if err != nil {
+		http.NotFound(w, r)
+		return
+	}
+	h := w.Header()
+	h.Set("Content-Type", icon.Type)
+	h.Set("Cache-Control", "private, max-age=86400")
+	// Another site's file on our origin: an SVG opened directly must not
+	// run scripts here.
+	h.Set("Content-Security-Policy", "default-src 'none'; style-src 'unsafe-inline'; sandbox")
+	w.Write(icon.Data)
 }
 
 func writeJSON(w http.ResponseWriter, v any) {

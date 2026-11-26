@@ -69,6 +69,16 @@ func (s Store) List(ctx context.Context, sub string) ([]Link, error) {
 	return out, rows.Err()
 }
 
+// Get returns one of the person's links, or ErrNotFound.
+func (s Store) Get(ctx context.Context, sub string, id int64) (Link, error) {
+	l := Link{ID: id}
+	err := s.DB.QueryRow(ctx, "SELECT title, url FROM quick_links WHERE sub = $1 AND id = $2", sub, id).Scan(&l.Title, &l.URL)
+	if errors.Is(err, pgx.ErrNoRows) {
+		return l, ErrNotFound
+	}
+	return l, err
+}
+
 // Add puts a new link at the end.
 func (s Store) Add(ctx context.Context, sub, title, address string) (Link, error) {
 	l := Link{Title: title, URL: address}

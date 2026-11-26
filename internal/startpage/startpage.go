@@ -49,6 +49,7 @@ type app struct {
 }
 
 type link struct {
+	ID                       int64
 	Title, URL, Host, Letter string
 }
 
@@ -77,7 +78,7 @@ func Handler(apps []catalogue.App, list func(r *http.Request, sub string) ([]lin
 			if u, err := url.Parse(l.URL); err == nil {
 				host = strings.TrimPrefix(u.Host, "www.")
 			}
-			ls = append(ls, link{l.Title, l.URL, host, firstLetter(l.Title)})
+			ls = append(ls, link{l.ID, l.Title, l.URL, host, firstLetter(l.Title)})
 		}
 		name := id.User.Name
 		if name == "" {

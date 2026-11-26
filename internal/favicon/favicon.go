@@ -11,11 +11,14 @@ import (
 	"io"
 	"log/slog"
 	"mime"
+	"net"
 	"net/http"
+	"net/netip"
 	"net/url"
 	"strconv"
 	"strings"
 	"sync"
+	"syscall"
 	"time"
 
 	"golang.org/x/net/html"
@@ -55,9 +58,14 @@ type Cache struct {
 }
 
 func NewCache(log *slog.Logger) *Cache {
+	dialer := &net.Dialer{Timeout: 5 * time.Second, Control: publicOnly}
+	transport := http.DefaultTransport.(*http.Transport).Clone()
+	transport.DialContext = dialer.DialContext
+	transport.Proxy = nil
 	return &Cache{
 		Client: &http.Client{
-			Timeout: 5 * time.Second,
+			Timeout:   5 * time.Second,
+			Transport: transport,
 			// Only https, also after redirects.
 			CheckRedirect: func(req *http.Request, via []*http.Request) error {
 				if req.URL.Scheme != "https" || len(via) >= 5 {
@@ -71,6 +79,33 @@ func NewCache(log *slog.Logger) *Cache {
 		now:     time.Now,
 	}
 }
+
+// publicOnly refuses connections to anything but public addresses. Quick
+// links are typed by people, so without it anyone signed in could make the
+// hub fetch from inside the cluster or the site. Checked when connecting,
+// after DNS and on every redirect, so a name can't point it elsewhere.
+func publicOnly(_, address string, _ syscall.RawConn) error {
+	host, _, err := net.SplitHostPort(address)
+	if err != nil {
+		return err
+	}
+	ip, err := netip.ParseAddr(host)
+	if err != nil {
+		return err
+	}
+	ip = ip.Unmap()
+	if !ip.IsGlobalUnicast() || ip.IsPrivate() || ip.IsLoopback() || ip.IsLinkLocalUnicast() ||
+		cgnat.Contains(ip) || ip.IsMulticast() || ip.IsUnspecified() {
+		return fmt.Errorf("%s is not a public address", ip)
+	}
+	return nil
+}
+
+// 100.64.0.0/10, shared address space (carrier-grade NAT, Tailscale).
+var cgnat = netip.MustParsePrefix("100.64.0.0/10")
+
+// maxEntries bounds the memory the icons take; people's links add sites.
+const maxEntries = 1000
 
 // Get returns the icon of the site at siteURL, or ErrNone.
 func (c *Cache) Get(ctx context.Context, siteURL string) (Icon, error) {
@@ -89,6 +124,10 @@ func (c *Cache) Get(ctx context.Context, siteURL string) (Icon, error) {
 			e = entry{err: ErrNone, expires: c.now().Add(keepMiss)}
 		}
 		c.mu.Lock()
+		if len(c.entries) >= maxEntries {
+			// Simple and rare: start over rather than track what is oldest.
+			c.entries = map[string]entry{}
+		}
 		c.entries[siteURL] = e
 		c.mu.Unlock()
 		return e, nil
