@@ -2,7 +2,6 @@ import { useState, type FormEvent } from "react";
 import {
   Affix,
   Alert,
-  Breadcrumb,
   Button,
   ButtonLink,
   Dialog,
@@ -194,12 +193,9 @@ export function PageView({
   return (
     <div className="hub-page">
       <header style={{ display: "flex", flexWrap: "wrap", alignItems: "center", justifyContent: "space-between", gap: 12 }}>
-        <div style={{ display: "flex", flexDirection: "column", gap: 4, minWidth: 0 }}>
-          <Breadcrumb items={[{ label: m.myPages }, { label: page.title }]} />
-          <div style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap", minWidth: 0 }}>
-            <h1 className="fw-t-title">{page.title}</h1>
-            <span className="fw-t-mono fw-t-muted hub-page-host">{where}</span>
-          </div>
+        <div style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap", minWidth: 0 }}>
+          <h1 className="fw-t-title">{page.title}</h1>
+          <span className="fw-t-mono fw-t-muted hub-page-host">{where}</span>
         </div>
         <div style={{ display: "flex", alignItems: "center", gap: 4 }}>
           {!page.refused && (

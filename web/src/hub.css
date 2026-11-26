@@ -127,6 +127,13 @@
   .hub-main {
     padding: 8px 4px;
   }
+  /* Below the bar of icons on a phone: the frame gets most of the screen. */
+  .hub-main.is-full {
+    height: auto;
+  }
+  .hub-frame {
+    min-height: 75vh;
+  }
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -166,13 +173,22 @@
   white-space: nowrap;
 }
 
-/* A page fills the height next to the sidebar: the frame takes what the
-   header leaves. */
+/* A page fills the height next to the sidebar, top and bottom level with
+   it and no padding of its own: the 16px around the layout is the margin.
+   The frame takes what the header leaves. */
+.hub-main.is-full {
+  padding: 0;
+  height: calc(100vh - 32px);
+}
 .hub-page {
+  flex: 1;
+  min-height: 0;
   display: flex;
   flex-direction: column;
   gap: 16px;
-  min-height: calc(100vh - 80px);
+}
+.hub-page > header {
+  min-height: 36px;
 }
 .hub-page-host {
   font-size: 12px;
@@ -180,7 +196,7 @@
 }
 .hub-frame {
   flex: 1;
-  min-height: 480px;
+  min-height: 0;
   border: 1px solid var(--fw-border);
   border-radius: var(--fw-r-md);
   background: var(--fw-surface);

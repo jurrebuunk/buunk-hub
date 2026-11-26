@@ -181,7 +181,8 @@ export function Shell({
           </form>
         </div>
       </SideNav>
-      <main className="hub-main">{children}</main>
+      {/* A page of one's own fills the height next to the sidebar, edge to edge. */}
+      <main className={path.startsWith("/pages/") ? "hub-main is-full" : "hub-main"}>{children}</main>
     </div>
   );
 }
