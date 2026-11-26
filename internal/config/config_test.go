@@ -1,30 +1,64 @@
 package config
 
-import "testing"
+import (
+	"strings"
+	"testing"
+)
 
 func env(m map[string]string) func(string) (string, bool) {
 	return func(k string) (string, bool) { v, ok := m[k]; return v, ok }
 }
 
-func TestDefaults(t *testing.T) {
-	c, err := load(env(nil))
-	if err != nil {
-		t.Fatal(err)
-	}
-	if c.Addr != ":8080" {
-		t.Errorf("Addr = %q, want :8080", c.Addr)
+func valid() map[string]string {
+	return map[string]string{
+		"HUB_PUBLIC_URL":         "https://hub.example.test",
+		"HUB_DATABASE_URL":       "postgres://hub@db/hub",
+		"HUB_OIDC_ISSUER":        "https://auth.example.test/realms/test",
+		"HUB_OIDC_CLIENT_SECRET": "secret",
+		"HUB_SESSION_KEY":        "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=",
 	}
 }
 
-func TestAddr(t *testing.T) {
-	c, err := load(env(map[string]string{"HUB_ADDR": "127.0.0.1:9000"}))
+func TestDefaults(t *testing.T) {
+	c, err := load(env(valid()))
 	if err != nil {
 		t.Fatal(err)
 	}
-	if c.Addr != "127.0.0.1:9000" {
-		t.Errorf("Addr = %q", c.Addr)
+	if c.Addr != ":8080" || c.OIDCClientID != "hub" {
+		t.Errorf("Addr = %q, OIDCClientID = %q", c.Addr, c.OIDCClientID)
 	}
-	if _, err := load(env(map[string]string{"HUB_ADDR": "9000"})); err == nil {
-		t.Error("HUB_ADDR without a port was accepted")
+	if c.PublicURL.String() != "https://hub.example.test" || len(c.SessionKey) != 32 {
+		t.Errorf("PublicURL = %v, key %d bytes", c.PublicURL, len(c.SessionKey))
+	}
+}
+
+func TestRequired(t *testing.T) {
+	_, err := load(env(nil))
+	if err == nil {
+		t.Fatal("empty environment accepted")
+	}
+	for _, name := range []string{"HUB_PUBLIC_URL", "HUB_DATABASE_URL", "HUB_OIDC_ISSUER", "HUB_OIDC_CLIENT_SECRET", "HUB_SESSION_KEY"} {
+		if !strings.Contains(err.Error(), name) {
+			t.Errorf("error doesn't mention %s: %v", name, err)
+		}
+	}
+}
+
+func TestInvalid(t *testing.T) {
+	for name, value := range map[string]string{
+		"HUB_ADDR":        "9000",
+		"HUB_PUBLIC_URL":  "https://hub.example.test/sub",
+		"HUB_SESSION_KEY": "c2hvcnQ=",
+	} {
+		m := valid()
+		m[name] = value
+		if _, err := load(env(m)); err == nil {
+			t.Errorf("%s=%q accepted", name, value)
+		}
+	}
+	m := valid()
+	m["HUB_PUBLIC_URL"] = "ftp://hub.example.test"
+	if _, err := load(env(m)); err == nil {
+		t.Error("ftp public URL accepted")
 	}
 }

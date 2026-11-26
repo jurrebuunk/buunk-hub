@@ -45,7 +45,7 @@ Made up front so work can start; change one here first if it turns out wrong.
 | Frontend | **React + TypeScript + Vite** with **`@flatwork-ui/react`** (the `flatwork-saas` theme, same as the Keycloak login) | Same look as `auth.buunk.org` |
 | Start page | Server-rendered HTML from Go templates, no React, tiny CSS, no JS needed | Opens with every browser window: must be instant |
 | Sign-in | OIDC code flow with PKCE, **confidential client `hub`**, done by the server (backend-for-frontend): the browser only gets an `HttpOnly`, `Secure`, `SameSite=Lax` session cookie, never a token | No tokens in the browser |
-| Sessions | Stored in Postgres, **30 days, sliding**. Roles are re-read from Keycloak with the refresh token at most once an hour; if that fails (account disabled, roles gone), the session ends | The start page must stay signed in for weeks |
+| Sessions | Stored in Postgres, **30 days, sliding**. Roles are re-read from Keycloak with the refresh token at most once an hour; if Keycloak refuses (account disabled, token revoked), the session ends. The hub asks for `offline_access`, so the `hub` client needs it as an optional scope | The start page must stay signed in for weeks; a normal refresh token dies with the Keycloak SSO session after hours |
 | Data | Own Postgres `hub-db` (CloudNativePG, 2 instances, `components/postgres`) | Platform rule: databases are Postgres |
 | Files | Profile pictures in S3 bucket `hub-avatars` (own S3 user `hub`) | Platform rule: files go to S3 |
 | Apps on Home | A catalogue in Git (`deploy/catalogue.yaml`, a ConfigMap): name, URL, description, icon, the client role that grants it, `internal: true` for apps behind WARP. Shown when the person's token has that role | "Shared, defined by the owner"; no admin rights needed to list apps |
@@ -74,16 +74,16 @@ Made up front so work can start; change one here first if it turns out wrong.
 
 ### 2. Sign-in, locally
 
-- [ ] `dev/compose.yaml`: Postgres, Keycloak 26.8.2 with
+- [x] `dev/compose.yaml`: Postgres, Keycloak 26.8.2 with
       `dev/realm.json` (client `hub`, groups `admins`/`family`/`friends`,
       client roles like the real realm, test users with throwaway
       passwords), MinIO.
-- [ ] Database migrations (embedded, run at start); tables for users
+- [x] Database migrations (embedded, run at start); tables for users
       (Keycloak `sub`, cached name, email, picture) and sessions.
-- [ ] Login, callback (state, nonce, PKCE checked), logout (also ends the
+- [x] Login, callback (state, nonce, PKCE checked), logout (also ends the
       Keycloak session), session middleware, CSRF: `SameSite=Lax` plus an
       `Origin` check on every non-GET request.
-- [ ] Done when: against the dev Keycloak a test user signs in, reloads,
+- [x] Done when: against the dev Keycloak a test user signs in, reloads,
       stays signed in, signs out; a forged `state` is refused (test).
 
 ### 3. On the cluster
@@ -94,7 +94,9 @@ Made up front so work can start; change one here first if it turns out wrong.
       key), components `postgres`, `egress/default`, `egress/s3`.
 - [ ] In `hgd1-k8s` (see AGENTS.md, *Changes outside this repo*):
       `apps/hub.yaml` (copy `apps/cloudreve.yaml`), client `hub` in
-      `platform/keycloak-realm/hgd1.yaml`, tunnel route `hub.buunk.org` in
+      `platform/keycloak-realm/hgd1.yaml` (like `dev/realm.json`: optional
+      scope `offline_access`, all client roles in the ID token as
+      `resource_access`), tunnel route `hub.buunk.org` in
       `infrastructure/cloudflared/config.yaml`, DNS record (proxied CNAME to
       the tunnel).
 - [ ] S3 user `hub` and bucket `hub-avatars` (`labctl s3 user create`,

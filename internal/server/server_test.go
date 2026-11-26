@@ -1,16 +1,35 @@
 package server
 
 import (
+	"encoding/json"
 	"net/http"
 	"net/http/httptest"
 	"testing"
 	"testing/fstest"
+
+	"github.com/jurrebuunk/buunk-hub/internal/auth"
 )
 
 var frontend = fstest.MapFS{
 	"index.html":      {Data: []byte("<!doctype html>app")},
 	"assets/app-1.js": {Data: []byte("js")},
 	"favicon.svg":     {Data: []byte("<svg/>")},
+}
+
+// fakeAuth lets everyone in as one person, or no one.
+type fakeAuth struct{ signedIn bool }
+
+func (fakeAuth) Routes(*http.ServeMux)                   {}
+func (fakeAuth) CheckOrigin(h http.Handler) http.Handler { return h }
+func (f fakeAuth) Require(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if !f.signedIn {
+			http.Error(w, "signed out", http.StatusUnauthorized)
+			return
+		}
+		id := auth.Identity{User: auth.User{Sub: "u1", Name: "Ann", Locale: "nl"}}
+		next.ServeHTTP(w, r.WithContext(auth.WithIdentity(r.Context(), id)))
+	})
 }
 
 func get(t *testing.T, h http.Handler, target string) *httptest.ResponseRecorder {
@@ -21,14 +40,23 @@ func get(t *testing.T, h http.Handler, target string) *httptest.ResponseRecorder
 }
 
 func TestHealthz(t *testing.T) {
-	rec := get(t, New(frontend), "/healthz")
+	rec := get(t, New(fakeAuth{}, frontend), "/healthz")
 	if rec.Code != http.StatusOK || rec.Body.String() != "ok\n" {
 		t.Errorf("got %d %q", rec.Code, rec.Body.String())
 	}
 }
 
+func TestSignedOut(t *testing.T) {
+	h := New(fakeAuth{}, frontend)
+	for _, p := range []string{"/", "/settings", "/assets/app-1.js", "/api/me", "/api/nothing"} {
+		if rec := get(t, h, p); rec.Code != http.StatusUnauthorized {
+			t.Errorf("%s: code %d, want 401", p, rec.Code)
+		}
+	}
+}
+
 func TestFrontend(t *testing.T) {
-	h := New(frontend)
+	h := New(fakeAuth{signedIn: true}, frontend)
 	for _, tc := range []struct {
 		path, body, cache string
 		code              int
@@ -38,6 +66,7 @@ func TestFrontend(t *testing.T) {
 		{"/assets/app-1.js", "js", "public, max-age=31536000, immutable", 200},
 		{"/favicon.svg", "<svg/>", "", 200},
 		{"/assets/gone.js", "", "", 404},
+		{"/api/nothing", "", "", 404},
 	} {
 		rec := get(t, h, tc.path)
 		if rec.Code != tc.code {
@@ -56,15 +85,26 @@ func TestFrontend(t *testing.T) {
 	}
 }
 
+func TestMe(t *testing.T) {
+	rec := get(t, New(fakeAuth{signedIn: true}, frontend), "/api/me")
+	var got map[string]string
+	if err := json.NewDecoder(rec.Body).Decode(&got); err != nil {
+		t.Fatal(err)
+	}
+	if got["sub"] != "u1" || got["name"] != "Ann" || got["lang"] != "nl" {
+		t.Errorf("got %v", got)
+	}
+}
+
 func TestNotBuilt(t *testing.T) {
-	if rec := get(t, New(fstest.MapFS{}), "/"); rec.Code != http.StatusServiceUnavailable {
+	if rec := get(t, New(fakeAuth{signedIn: true}, fstest.MapFS{}), "/"); rec.Code != http.StatusServiceUnavailable {
 		t.Errorf("code %d, want 503", rec.Code)
 	}
 }
 
 func TestOnlyGet(t *testing.T) {
 	rec := httptest.NewRecorder()
-	New(frontend).ServeHTTP(rec, httptest.NewRequest(http.MethodPost, "/", nil))
+	New(fakeAuth{signedIn: true}, frontend).ServeHTTP(rec, httptest.NewRequest(http.MethodPost, "/", nil))
 	if rec.Code != http.StatusMethodNotAllowed {
 		t.Errorf("POST /: code %d, want 405", rec.Code)
 	}

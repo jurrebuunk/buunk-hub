@@ -1,0 +1,275 @@
+{
+  "realm": "hgd1",
+  "enabled": true,
+  "displayName": "buunk (dev)",
+  "registrationAllowed": false,
+  "loginWithEmailAllowed": true,
+  "duplicateEmailsAllowed": false,
+  "rememberMe": true,
+  "sslRequired": "external",
+  "internationalizationEnabled": true,
+  "supportedLocales": [
+    "en",
+    "nl"
+  ],
+  "defaultLocale": "en",
+  "groups": [
+    {
+      "name": "admins",
+      "clientRoles": {
+        "cloudreve": [
+          "cloudreve-admin"
+        ],
+        "cloudflare-zero-trust": [
+          "warp"
+        ]
+      }
+    },
+    {
+      "name": "family",
+      "clientRoles": {
+        "cloudreve": [
+          "cloudreve-user"
+        ],
+        "cloudflare-zero-trust": [
+          "warp"
+        ]
+      }
+    },
+    {
+      "name": "friends",
+      "clientRoles": {
+        "cloudreve": [
+          "cloudreve-user"
+        ]
+      }
+    }
+  ],
+  "roles": {
+    "client": {
+      "cloudreve": [
+        {
+          "name": "cloudreve-admin"
+        },
+        {
+          "name": "cloudreve-user"
+        }
+      ],
+      "cloudflare-zero-trust": [
+        {
+          "name": "warp"
+        }
+      ]
+    },
+    "realm": [
+      {
+        "name": "offline_access",
+        "description": "${role_offline-access}"
+      }
+    ]
+  },
+  "clients": [
+    {
+      "clientId": "hub",
+      "name": "buunk hub",
+      "enabled": true,
+      "protocol": "openid-connect",
+      "publicClient": false,
+      "clientAuthenticatorType": "client-secret",
+      "secret": "hub-dev-secret",
+      "standardFlowEnabled": true,
+      "implicitFlowEnabled": false,
+      "directAccessGrantsEnabled": false,
+      "serviceAccountsEnabled": false,
+      "frontchannelLogout": false,
+      "rootUrl": "http://localhost:8080",
+      "baseUrl": "/",
+      "redirectUris": [
+        "http://localhost:8080/auth/callback"
+      ],
+      "webOrigins": [],
+      "attributes": {
+        "pkce.code.challenge.method": "S256",
+        "post.logout.redirect.uris": "http://localhost:8080/auth/signed-out"
+      },
+      "defaultClientScopes": [
+        "basic",
+        "profile",
+        "email"
+      ],
+      "optionalClientScopes": [
+        "offline_access"
+      ],
+      "protocolMappers": [
+        {
+          "name": "client roles",
+          "protocol": "openid-connect",
+          "protocolMapper": "oidc-usermodel-client-role-mapper",
+          "config": {
+            "claim.name": "resource_access.${client_id}.roles",
+            "jsonType.label": "String",
+            "multivalued": "true",
+            "id.token.claim": "true",
+            "access.token.claim": "false",
+            "userinfo.token.claim": "false",
+            "introspection.token.claim": "false"
+          }
+        }
+      ]
+    },
+    {
+      "clientId": "cloudreve",
+      "name": "Cloudreve",
+      "enabled": true,
+      "protocol": "openid-connect",
+      "publicClient": false,
+      "secret": "cloudreve-dev-secret",
+      "standardFlowEnabled": true,
+      "directAccessGrantsEnabled": false,
+      "redirectUris": [
+        "http://localhost:5212/api/v4/session/oidc/callback"
+      ],
+      "webOrigins": [],
+      "attributes": {
+        "pkce.code.challenge.method": "S256"
+      },
+      "defaultClientScopes": [
+        "basic",
+        "profile",
+        "email"
+      ],
+      "optionalClientScopes": [],
+      "protocolMappers": [
+        {
+          "name": "roles",
+          "protocol": "openid-connect",
+          "protocolMapper": "oidc-usermodel-client-role-mapper",
+          "config": {
+            "usermodel.clientRoleMapping.clientId": "cloudreve",
+            "claim.name": "roles",
+            "jsonType.label": "String",
+            "multivalued": "true",
+            "id.token.claim": "true",
+            "access.token.claim": "false",
+            "userinfo.token.claim": "false",
+            "introspection.token.claim": "false"
+          }
+        }
+      ]
+    },
+    {
+      "clientId": "cloudflare-zero-trust",
+      "name": "WARP",
+      "enabled": true,
+      "protocol": "openid-connect",
+      "publicClient": false,
+      "secret": "cloudflare-zero-trust-dev-secret",
+      "standardFlowEnabled": true,
+      "directAccessGrantsEnabled": false,
+      "redirectUris": [
+        "http://localhost/unused"
+      ],
+      "webOrigins": [],
+      "attributes": {
+        "pkce.code.challenge.method": "S256"
+      },
+      "defaultClientScopes": [
+        "basic",
+        "profile",
+        "email"
+      ],
+      "optionalClientScopes": [],
+      "protocolMappers": [
+        {
+          "name": "roles",
+          "protocol": "openid-connect",
+          "protocolMapper": "oidc-usermodel-client-role-mapper",
+          "config": {
+            "usermodel.clientRoleMapping.clientId": "cloudflare-zero-trust",
+            "claim.name": "roles",
+            "jsonType.label": "String",
+            "multivalued": "true",
+            "id.token.claim": "true",
+            "access.token.claim": "false",
+            "userinfo.token.claim": "false",
+            "introspection.token.claim": "false"
+          }
+        }
+      ]
+    }
+  ],
+  "users": [
+    {
+      "username": "owner",
+      "enabled": true,
+      "email": "owner@example.test",
+      "emailVerified": true,
+      "firstName": "Owner",
+      "lastName": "Test",
+      "groups": [
+        "/admins"
+      ],
+      "credentials": [
+        {
+          "type": "password",
+          "value": "owner-dev-password",
+          "temporary": false
+        }
+      ],
+      "realmRoles": [
+        "default-roles-hgd1"
+      ]
+    },
+    {
+      "username": "family",
+      "enabled": true,
+      "email": "family@example.test",
+      "emailVerified": true,
+      "firstName": "Family",
+      "lastName": "Test",
+      "groups": [
+        "/family"
+      ],
+      "credentials": [
+        {
+          "type": "password",
+          "value": "family-dev-password",
+          "temporary": false
+        }
+      ],
+      "realmRoles": [
+        "default-roles-hgd1"
+      ]
+    },
+    {
+      "username": "friend",
+      "enabled": true,
+      "email": "friend@example.test",
+      "emailVerified": true,
+      "firstName": "Friend",
+      "lastName": "Test",
+      "groups": [
+        "/friends"
+      ],
+      "credentials": [
+        {
+          "type": "password",
+          "value": "friend-dev-password",
+          "temporary": false
+        }
+      ],
+      "realmRoles": [
+        "default-roles-hgd1"
+      ]
+    }
+  ],
+  "defaultRole": {
+    "name": "default-roles-hgd1",
+    "composite": true,
+    "composites": {
+      "realm": [
+        "offline_access"
+      ]
+    }
+  }
+}

@@ -5,6 +5,7 @@ package main
 import (
 	"context"
 	"errors"
+	"fmt"
 	"log/slog"
 	"net/http"
 	"os"
@@ -12,7 +13,9 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/jurrebuunk/buunk-hub/internal/auth"
 	"github.com/jurrebuunk/buunk-hub/internal/config"
+	"github.com/jurrebuunk/buunk-hub/internal/db"
 	"github.com/jurrebuunk/buunk-hub/internal/server"
 	"github.com/jurrebuunk/buunk-hub/web"
 )
@@ -33,15 +36,34 @@ func run(log *slog.Logger) error {
 	if err != nil {
 		return err
 	}
+	ctx, stop := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM)
+	defer stop()
+
+	pool, err := db.Open(ctx, cfg.DatabaseURL)
+	if err != nil {
+		return fmt.Errorf("database: %w", err)
+	}
+	defer pool.Close()
+	a, err := auth.New(ctx, auth.Config{
+		PublicURL:    cfg.PublicURL,
+		Issuer:       cfg.OIDCIssuer,
+		ClientID:     cfg.OIDCClientID,
+		ClientSecret: cfg.OIDCClientSecret,
+		SessionKey:   cfg.SessionKey,
+		Store:        auth.PGStore{DB: pool},
+		Log:          log,
+	})
+	if err != nil {
+		return err
+	}
+	go a.Cleanup(ctx)
+
 	srv := &http.Server{
 		Addr:              cfg.Addr,
-		Handler:           server.New(web.Dist()),
+		Handler:           server.New(a, web.Dist()),
 		ReadHeaderTimeout: 10 * time.Second,
 		IdleTimeout:       2 * time.Minute,
 	}
-
-	ctx, stop := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM)
-	defer stop()
 	errc := make(chan error, 1)
 	go func() { errc <- srv.ListenAndServe() }()
 	log.Info("listening", "addr", cfg.Addr, "version", version)

@@ -1,24 +1,57 @@
-// Package server routes HTTP requests: health, and the built frontend.
+// Package server routes HTTP requests: health, sign-in, the API and the
+// built frontend.
 package server
 
 import (
+	"encoding/json"
 	"errors"
 	"io/fs"
 	"net/http"
 	"path"
 	"strings"
+
+	"github.com/jurrebuunk/buunk-hub/internal/auth"
+	"github.com/jurrebuunk/buunk-hub/internal/i18n"
 )
 
+// Auth is what the server needs from internal/auth.
+type Auth interface {
+	Routes(mux *http.ServeMux)
+	Require(next http.Handler) http.Handler
+	CheckOrigin(next http.Handler) http.Handler
+}
+
 // New returns the hub's handler. frontend is the built web app (web.Dist()).
-func New(frontend fs.FS) http.Handler {
+// Everything is behind sign-in except /healthz and /auth/.
+func New(a Auth, frontend fs.FS) http.Handler {
 	mux := http.NewServeMux()
 	// No auth: Kubernetes probes this.
 	mux.HandleFunc("GET /healthz", func(w http.ResponseWriter, _ *http.Request) {
 		w.Header().Set("Content-Type", "text/plain; charset=utf-8")
 		w.Write([]byte("ok\n"))
 	})
-	mux.Handle("GET /", spa(frontend))
-	return securityHeaders(mux)
+	a.Routes(mux)
+	mux.Handle("GET /api/me", a.Require(http.HandlerFunc(me)))
+	mux.Handle("GET /api/", a.Require(http.NotFoundHandler()))
+	mux.Handle("GET /", a.Require(spa(frontend)))
+	return securityHeaders(a.CheckOrigin(mux))
+}
+
+// me tells the app who is signed in and which language to show.
+func me(w http.ResponseWriter, r *http.Request) {
+	id, _ := auth.FromContext(r.Context())
+	writeJSON(w, map[string]any{
+		"sub":     id.User.Sub,
+		"name":    id.User.Name,
+		"email":   id.User.Email,
+		"picture": id.User.Picture,
+		"lang":    i18n.Pick(id.User.Locale, r.Header.Get("Accept-Language")),
+	})
+}
+
+func writeJSON(w http.ResponseWriter, v any) {
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(v)
 }
 
 // spa serves files from the built frontend. Paths that aren't a file get

@@ -1,0 +1,53 @@
+# Everything the hub needs, without the cluster: Postgres, Keycloak with a
+# test realm, and S3 (MinIO). Passwords here are throwaway, for this only.
+#   docker compose -f dev/compose.yaml up -d
+# then run the hub with dev/hub.env (see README.md). Ports are off the usual
+# ones so they don't clash with anything else running locally.
+name: buunk-hub-dev
+
+services:
+  postgres:
+    image: postgres:17.9-alpine@sha256:c7526c0f6c3f30260a563d7bcf8ad778effac59a44f8ffa86678c35418338609
+    environment:
+      POSTGRES_USER: hub
+      POSTGRES_PASSWORD: hub
+      POSTGRES_DB: hub
+    ports: ["127.0.0.1:15432:5432"]
+    volumes: [postgres:/var/lib/postgresql/data]
+    healthcheck:
+      test: ["CMD", "pg_isready", "-U", "hub"]
+      interval: 2s
+
+  # Same version as auth.buunk.org. realm.json is like the real realm
+  # (hgd1-k8s platform/keycloak-realm/hgd1.yaml): the same groups and client
+  # roles, plus the hub client (secret hub-dev-secret) and three test users,
+  # owner (admins), family (family) and friend (friends), each with password
+  # <username>-dev-password. Keep it in step with hgd1.yaml.
+  # The realm is imported once, on first
+  # start; after editing realm.json, `docker compose -f dev/compose.yaml
+  # down` and up again (Keycloak keeps nothing between runs).
+  keycloak:
+    image: quay.io/keycloak/keycloak:26.8.2@sha256:7e66a96e4739239070aeaf72e4c5decf0f7f682cfc725b9f7ea2b336eaba38b3
+    command: ["start-dev", "--import-realm"]
+    environment:
+      KC_BOOTSTRAP_ADMIN_USERNAME: admin
+      KC_BOOTSTRAP_ADMIN_PASSWORD: admin
+      # The browser and the hub (on the host) both use this address, so the
+      # issuer in tokens matches what the hub expects.
+      KC_HOSTNAME: http://localhost:8180
+      KC_HTTP_PORT: "8180"
+    ports: ["127.0.0.1:8180:8180"]
+    volumes: ["./realm.json:/opt/keycloak/data/import/realm.json:ro"]
+
+  minio:
+    image: cgr.dev/chainguard/minio:latest@sha256:b9b1cce81a4a6cc9bf250e68d621cc0b9fb8ed15aefe18fcd1840525eab6a81a
+    command: ["server", "/data", "--console-address", ":9001"]
+    environment:
+      MINIO_ROOT_USER: hub
+      MINIO_ROOT_PASSWORD: hub-dev-password
+    ports: ["127.0.0.1:19000:9000", "127.0.0.1:19001:9001"]
+    volumes: [minio:/data]
+
+volumes:
+  postgres:
+  minio:
