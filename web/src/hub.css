@@ -132,3 +132,16 @@
     transition: none;
   }
 }
+
+/* A picture fills its round avatar (the theme only sizes initials). */
+.hub-avatar {
+  position: relative;
+  overflow: hidden;
+}
+.hub-avatar img {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}

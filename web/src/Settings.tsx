@@ -19,6 +19,7 @@ import {
 } from "@flatwork-ui/react";
 import { ApiError, getJSON, send, type Me, type QuickLink } from "./api";
 import type { Messages } from "./i18n";
+import { CropDialog } from "./CropDialog";
 import { Link } from "./router";
 import { Picture } from "./Shell";
 
@@ -57,15 +58,24 @@ function Profile({ me, m, setMe }: { me: Me; m: Messages; setMe: (me: Me) => voi
   const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState<{ tone: "success" | "error"; text: string }>();
 
-  async function upload(files: FileList) {
+  const [framing, setFraming] = useState<File>();
+
+  // A chosen file is framed first (CropDialog), then uploaded.
+  function choose(files: FileList) {
     const file = files[0];
     if (!file) return;
     if (file.size > maxUpload) {
       setMessage({ tone: "error", text: m.errors["too-large"]! });
       return;
     }
+    setMessage(undefined);
+    setFraming(file);
+  }
+
+  async function upload(cropped: Blob) {
+    setFraming(undefined);
     const form = new FormData();
-    form.append("picture", file);
+    form.append("picture", cropped, "picture.jpg");
     setBusy(true);
     setMessage(undefined);
     try {
@@ -120,7 +130,7 @@ function Profile({ me, m, setMe }: { me: Me; m: Messages; setMe: (me: Me) => voi
               <Dropzone
                 accept="image/jpeg,image/png,image/webp"
                 disabled={busy}
-                onFiles={upload}
+                onFiles={choose}
                 title={
                   busy ? (
                     <span style={{ display: "inline-flex", alignItems: "center", gap: 8 }}>
@@ -137,6 +147,7 @@ function Profile({ me, m, setMe }: { me: Me; m: Messages; setMe: (me: Me) => voi
             </div>
           </div>
           {message && <Alert tone={message.tone}>{message.text}</Alert>}
+          {framing && <CropDialog file={framing} m={m} onCancel={() => setFraming(undefined)} onDone={upload} />}
         </CardBody>
       </Card>
 

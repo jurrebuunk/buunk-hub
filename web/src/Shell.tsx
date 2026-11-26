@@ -16,7 +16,7 @@ export function initials(name: string): string {
 export function Picture({ me, size }: { me: Me; size?: number }) {
   const style = size ? { width: size, height: size, fontSize: size * 0.32, borderWidth: 2 } : undefined;
   return (
-    <Avatar aria-hidden="true" style={style}>
+    <Avatar aria-hidden="true" className="hub-avatar" style={style}>
       {me.picture ? <img src={me.picture} alt="" /> : initials(me.name || me.email)}
     </Avatar>
   );
