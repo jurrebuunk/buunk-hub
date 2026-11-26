@@ -88,6 +88,20 @@ export function Shell({ me, m, path, children }: { me: Me; m: Messages; path: st
         >
           {label(m.home)}
         </NavItem>
+        <span className="fw-group-label hub-group">{label(m.you)}</span>
+        <NavItem
+          as={Link}
+          href="/settings"
+          current={path.startsWith("/settings")}
+          icon={<Icon name="settings" />}
+          title={collapsed ? m.settings : undefined}
+        >
+          {label(m.settings)}
+        </NavItem>
+        {/* The start page is the server's own page, not part of the app. */}
+        <NavItem href="/start" icon={<Icon name="travel_explore" />} title={collapsed ? m.startPage : undefined}>
+          {label(m.startPage)}
+        </NavItem>
         {/* Above the profile, a row like the nav items, its icon in the same
             column open or folded. Phones always get the folded bar. */}
         {!narrow && (

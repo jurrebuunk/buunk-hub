@@ -9,7 +9,7 @@ accounts and passwords live.
 It runs on the [hgd1 cluster](https://github.com/jurrebuunk/hgd1-k8s) and is
 deployed by Flux from this repo's `deploy/`.
 
-**Status:** milestones 3 (on the cluster) and 4 (Home) of [PLAN.md](PLAN.md);
+**Status:** milestones 5 (profile picture) and 6 (start page) of [PLAN.md](PLAN.md);
 agents start with [AGENTS.md](AGENTS.md). The designs the pages follow are
 the flatwork-saas mock-ups of the whole hub (Home, the WARP guide, and the
 pages still to come).
@@ -76,9 +76,32 @@ Environment variables only; `dev/hub.env` has values for development.
 | `HUB_OIDC_ISSUER` | required | `https://auth.buunk.org/realms/hgd1` |
 | `HUB_OIDC_CLIENT_ID` | `hub` | The Keycloak client |
 | `HUB_OIDC_CLIENT_SECRET` | required | Its secret |
+| `HUB_KEYCLOAK_ADMIN_URL` | the issuer with `/admin` | The realm's admin API, for setting pictures; on the cluster Keycloak's internal address (`/admin` is not public) |
+| `HUB_S3_ENDPOINT` | required | S3 for profile pictures (path-style, region `us-east-1`) |
+| `HUB_S3_BUCKET` | `hub-avatars` | The bucket |
+| `HUB_S3_ACCESS_KEY`, `HUB_S3_SECRET_KEY` | required | Its key |
 | `HUB_SESSION_KEY` | required | 32 random bytes, base64 (`openssl rand -base64 32`); seals the sign-in cookie and the stored tokens. Changing it signs everyone out |
 
 The database schema is migrated at start (`internal/db/migrations`).
+
+## Profile pictures
+
+Settings → Profile uploads a picture (JPEG, PNG or WebP, up to 5 MB). The
+server decodes it, crops the middle square and encodes a new 512×512 JPEG,
+so nothing else from the file survives (`internal/avatar`). It is stored in
+S3 as `<sub>/<hash>.jpg`, served without sign-in at `/avatars/<sub>/<hash>.jpg`
+(cached forever: a new picture is a new name), and that address goes into
+the person's `picture` attribute in Keycloak, through the `hub` client's
+service account (`realm-management` `manage-users`, scope `kc-admin-api`).
+Other apps get it as the `picture` claim with scope `profile`.
+
+## Start page
+
+`/start` is a page of its own, rendered by the server (`internal/startpage`):
+a DuckDuckGo search form, the person's apps and their quick links (Settings
+→ Start page and quick links). No framework and no web fonts, about 8 KB;
+the clock is the only script and the page works without it. Signed out, it
+goes to sign-in and back.
 
 ## Home and the catalogue
 

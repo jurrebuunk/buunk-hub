@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { Button, EmptyState, FlatworkRoot, Icon, Spinner } from "@flatwork-ui/react";
 import { getJSON, type App as HubApp, type Me } from "./api";
 import { Home } from "./Home";
+import { Settings } from "./Settings";
 import { isLang, pickLang, t, type Lang } from "./i18n";
 import { usePath } from "./router";
 import { Shell } from "./Shell";
@@ -31,7 +32,7 @@ export function App() {
 
   const lang: Lang = state.kind === "ready" && isLang(state.me.lang) ? state.me.lang : pickLang(navigator.languages);
   const m = t(lang);
-  const pageTitle = path === "/warp" ? m.guideTitle : m.home;
+  const pageTitle = path === "/warp" ? m.guideTitle : path.startsWith("/settings") ? m.settings : m.home;
   useEffect(() => {
     document.documentElement.lang = lang;
     document.title = `${pageTitle} · ${m.title}`;
@@ -66,6 +67,8 @@ export function App() {
         <Shell me={state.me} m={m} path={path}>
           {path === "/warp" ? (
             <WarpGuide m={m} apps={state.apps} reach={reach} recheck={recheck} />
+          ) : path === "/settings" || path === "/settings/start" ? (
+            <Settings me={state.me} m={m} path={path} setMe={(me) => setState({ ...state, me })} />
           ) : (
             <Home me={state.me} m={m} apps={state.apps} reach={reach} />
           )}

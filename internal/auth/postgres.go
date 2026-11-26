@@ -13,11 +13,11 @@ import (
 type PGStore struct{ DB *pgxpool.Pool }
 
 func upsertUser(ctx context.Context, tx pgx.Tx, u User) error {
-	_, err := tx.Exec(ctx, `INSERT INTO users (sub, name, email, locale, picture)
-		VALUES ($1, $2, $3, $4, $5)
+	_, err := tx.Exec(ctx, `INSERT INTO users (sub, name, email, locale, picture, username)
+		VALUES ($1, $2, $3, $4, $5, $6)
 		ON CONFLICT (sub) DO UPDATE SET name = $2, email = $3, locale = $4,
-			picture = $5, updated_at = now()`,
-		u.Sub, u.Name, u.Email, u.Locale, u.Picture)
+			picture = $5, username = $6, updated_at = now()`,
+		u.Sub, u.Name, u.Email, u.Locale, u.Picture, u.Username)
 	return err
 }
 
@@ -38,11 +38,11 @@ func (p PGStore) Session(ctx context.Context, id []byte) (Session, User, error) 
 	var s Session
 	var u User
 	err := p.DB.QueryRow(ctx, `SELECT s.id, s.sub, s.roles, s.refresh_token, s.id_token,
-			s.expires_at, s.roles_checked_at, u.name, u.email, u.locale, u.picture
+			s.expires_at, s.roles_checked_at, u.name, u.username, u.email, u.locale, u.picture
 		FROM sessions s JOIN users u USING (sub)
 		WHERE s.id = $1 AND s.expires_at > now()`, id).
 		Scan(&s.ID, &s.Sub, &s.Roles, &s.RefreshToken, &s.IDToken,
-			&s.ExpiresAt, &s.RolesCheckedAt, &u.Name, &u.Email, &u.Locale, &u.Picture)
+			&s.ExpiresAt, &s.RolesCheckedAt, &u.Name, &u.Username, &u.Email, &u.Locale, &u.Picture)
 	if errors.Is(err, pgx.ErrNoRows) {
 		return Session{}, User{}, ErrNoSession
 	}
@@ -74,5 +74,12 @@ func (p PGStore) DeleteSession(ctx context.Context, id []byte) error {
 
 func (p PGStore) DeleteExpired(ctx context.Context) error {
 	_, err := p.DB.Exec(ctx, "DELETE FROM sessions WHERE expires_at <= now()")
+	return err
+}
+
+// SetPicture updates the cached picture right away; the next sign-in or
+// hourly refresh brings the same value from Keycloak.
+func (p PGStore) SetPicture(ctx context.Context, sub, picture string) error {
+	_, err := p.DB.Exec(ctx, "UPDATE users SET picture = $2, updated_at = now() WHERE sub = $1", sub, picture)
 	return err
 }

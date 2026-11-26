@@ -26,6 +26,12 @@ type Config struct {
 	OIDCIssuer       string
 	OIDCClientID     string
 	OIDCClientSecret string
+	// KeycloakAdminURL is the realm's admin API, for setting pictures. On
+	// the cluster it is Keycloak's internal address: /admin is not public.
+	KeycloakAdminURL string
+
+	// S3 bucket for profile pictures.
+	S3Endpoint, S3Bucket, S3AccessKey, S3SecretKey string
 
 	// SessionKey (32 bytes) seals the sign-in cookie and the tokens stored
 	// in the database.
@@ -60,7 +66,13 @@ func load(lookup func(string) (string, bool)) (Config, error) {
 		OIDCIssuer:       required("HUB_OIDC_ISSUER"),
 		OIDCClientID:     get("HUB_OIDC_CLIENT_ID", "hub"),
 		OIDCClientSecret: required("HUB_OIDC_CLIENT_SECRET"),
+		S3Endpoint:       required("HUB_S3_ENDPOINT"),
+		S3Bucket:         get("HUB_S3_BUCKET", "hub-avatars"),
+		S3AccessKey:      required("HUB_S3_ACCESS_KEY"),
+		S3SecretKey:      required("HUB_S3_SECRET_KEY"),
 	}
+	// https://auth.example/realms/x → https://auth.example/admin/realms/x
+	c.KeycloakAdminURL = get("HUB_KEYCLOAK_ADMIN_URL", strings.Replace(c.OIDCIssuer, "/realms/", "/admin/realms/", 1))
 	if _, _, err := net.SplitHostPort(c.Addr); err != nil {
 		errs = append(errs, fmt.Errorf("HUB_ADDR %q: %w", c.Addr, err))
 	}

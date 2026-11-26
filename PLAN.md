@@ -123,7 +123,7 @@ Made up front so work can start; change one here first if it turns out wrong.
 - [ ] In `hgd1-k8s`: realm user profile attribute `picture` (`https://` URL,
       edit: admin only, view: user and admin), the `hub` service account
       with `manage-users`.
-- [ ] Settings: upload (max 5 MB, JPEG/PNG/WebP in, 512×512 JPEG out),
+- [x] Settings: upload (max 5 MB, JPEG/PNG/WebP in, 512×512 JPEG out),
       crop to square, remove picture.
 - [ ] Done when: after upload the hub shows it, `https://hub.buunk.org/avatars/…`
       loads without signing in, and a fresh ID token of another client that
@@ -131,10 +131,10 @@ Made up front so work can start; change one here first if it turns out wrong.
 
 ### 6. Start page
 
-- [ ] `/start`: a DuckDuckGo search form (`GET https://duckduckgo.com/`, field
+- [x] `/start`: a DuckDuckGo search form (`GET https://duckduckgo.com/`, field
       `q`, nothing logged on our side), the person's apps and their quick
       links. Signed out → straight to sign-in and back.
-- [ ] Settings: add, edit, reorder and remove quick links (title, URL).
+- [x] Settings: add, edit, reorder and remove quick links (title, URL).
 - [ ] Done when: set as a browser's home page it shows within 200 ms on a
       warm connection, under 50 KB, and still works signed in after a week.
 

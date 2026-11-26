@@ -317,7 +317,7 @@ func (c claims) user() User {
 	if name == "" {
 		name = c.PreferredUsername
 	}
-	return User{Sub: c.Subject, Name: name, Email: c.Email, Locale: c.Locale, Picture: c.Picture}
+	return User{Sub: c.Subject, Name: name, Username: c.PreferredUsername, Email: c.Email, Locale: c.Locale, Picture: c.Picture}
 }
 
 func (c claims) roles() Roles {

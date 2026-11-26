@@ -18,6 +18,10 @@ import (
 	"github.com/jurrebuunk/buunk-hub/internal/config"
 	"github.com/jurrebuunk/buunk-hub/internal/db"
 	"github.com/jurrebuunk/buunk-hub/internal/favicon"
+	"github.com/jurrebuunk/buunk-hub/internal/kcadmin"
+	"github.com/jurrebuunk/buunk-hub/internal/links"
+	"github.com/jurrebuunk/buunk-hub/internal/objects"
+	"github.com/jurrebuunk/buunk-hub/internal/picture"
 	"github.com/jurrebuunk/buunk-hub/internal/server"
 	"github.com/jurrebuunk/buunk-hub/web"
 )
@@ -65,8 +69,22 @@ func run(log *slog.Logger) error {
 	go a.Cleanup(ctx)
 
 	srv := &http.Server{
-		Addr:              cfg.Addr,
-		Handler:           server.New(a, apps, favicon.NewCache(log), web.Dist()),
+		Addr: cfg.Addr,
+		Handler: server.New(server.Deps{
+			Auth:  a,
+			Apps:  apps,
+			Icons: favicon.NewCache(log),
+			Pictures: &picture.Service{
+				Objects:   objects.New(cfg.S3Endpoint, cfg.S3Bucket, cfg.S3AccessKey, cfg.S3SecretKey),
+				Keycloak:  kcadmin.New(ctx, cfg.KeycloakAdminURL, cfg.OIDCIssuer+"/protocol/openid-connect/token", cfg.OIDCClientID, cfg.OIDCClientSecret),
+				Users:     auth.PGStore{DB: pool},
+				PublicURL: cfg.PublicURL,
+				Log:       log,
+			},
+			Links:    links.Store{DB: pool},
+			Frontend: web.Dist(),
+			Log:      log,
+		}),
 		ReadHeaderTimeout: 10 * time.Second,
 		IdleTimeout:       2 * time.Minute,
 	}

@@ -21,7 +21,27 @@ export function Home({ me, m, apps, reach }: { me: Me; m: Messages; apps: App[];
     <>
       <header style={{ display: "flex", flexWrap: "wrap", alignItems: "center", justifyContent: "space-between", gap: 16 }}>
         <div style={{ display: "flex", alignItems: "center", gap: 20 }}>
-          <Picture me={me} size={88} />
+          <Link href="/settings" aria-label={m.changePicture} title={m.changePicture} style={{ position: "relative", display: "block", textDecoration: "none" }}>
+            <Picture me={me} size={88} />
+            <span
+              aria-hidden="true"
+              style={{
+                position: "absolute",
+                right: -2,
+                bottom: -2,
+                display: "grid",
+                placeContent: "center",
+                width: 30,
+                height: 30,
+                borderRadius: "50%",
+                background: "var(--fw-surface)",
+                border: "1px solid var(--fw-border-strong)",
+                color: "var(--fw-heading)",
+              }}
+            >
+              <Icon name="photo_camera" size={16} />
+            </span>
+          </Link>
           <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
             <h1 className="fw-t-display">{m.greeting(new Date().getHours(), firstName)}</h1>
             <p className="fw-t-body fw-t-muted">{apps.length ? m.appCount(apps.length) : m.noApps}</p>

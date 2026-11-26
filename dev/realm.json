@@ -80,7 +80,7 @@
       "standardFlowEnabled": true,
       "implicitFlowEnabled": false,
       "directAccessGrantsEnabled": false,
-      "serviceAccountsEnabled": false,
+      "serviceAccountsEnabled": true,
       "frontchannelLogout": false,
       "rootUrl": "http://localhost:8080",
       "baseUrl": "/",
@@ -95,10 +95,13 @@
       "defaultClientScopes": [
         "basic",
         "profile",
-        "email"
+        "email",
+        "roles",
+        "service_account"
       ],
       "optionalClientScopes": [
-        "offline_access"
+        "offline_access",
+        "kc-admin-api"
       ],
       "protocolMappers": [
         {
@@ -261,6 +264,19 @@
       "realmRoles": [
         "default-roles-hgd1"
       ]
+    },
+    {
+      "username": "service-account-hub",
+      "enabled": true,
+      "serviceAccountClientId": "hub",
+      "realmRoles": [
+        "default-roles-hgd1"
+      ],
+      "clientRoles": {
+        "realm-management": [
+          "manage-users"
+        ]
+      }
     }
   ],
   "defaultRole": {
@@ -271,5 +287,18 @@
         "offline_access"
       ]
     }
+  },
+  "components": {
+    "org.keycloak.userprofile.UserProfileProvider": [
+      {
+        "providerId": "declarative-user-profile",
+        "subComponents": {},
+        "config": {
+          "kc.user.profile.config": [
+            "{\"attributes\": [{\"name\": \"username\", \"displayName\": \"${username}\", \"validations\": {\"length\": {\"min\": 3, \"max\": 255}, \"username-prohibited-characters\": {}, \"up-username-not-idn-homograph\": {}}, \"permissions\": {\"view\": [\"admin\", \"user\"], \"edit\": [\"admin\", \"user\"]}, \"multivalued\": false}, {\"name\": \"email\", \"displayName\": \"${email}\", \"validations\": {\"email\": {}, \"length\": {\"max\": 255}}, \"required\": {\"roles\": [\"user\"]}, \"permissions\": {\"view\": [\"admin\", \"user\"], \"edit\": [\"admin\", \"user\"]}, \"multivalued\": false}, {\"name\": \"firstName\", \"displayName\": \"${firstName}\", \"validations\": {\"length\": {\"max\": 255}, \"person-name-prohibited-characters\": {}}, \"required\": {\"roles\": [\"user\"]}, \"permissions\": {\"view\": [\"admin\", \"user\"], \"edit\": [\"admin\", \"user\"]}, \"multivalued\": false}, {\"name\": \"lastName\", \"displayName\": \"${lastName}\", \"validations\": {\"length\": {\"max\": 255}, \"person-name-prohibited-characters\": {}}, \"required\": {\"roles\": [\"user\"]}, \"permissions\": {\"view\": [\"admin\", \"user\"], \"edit\": [\"admin\", \"user\"]}, \"multivalued\": false}, {\"name\": \"picture\", \"displayName\": \"Profile picture\", \"validations\": {\"uri\": {}, \"pattern\": {\"pattern\": \"^https?://.+\", \"error-message\": \"The picture must be an http(s):// address.\"}, \"length\": {\"max\": 2048}}, \"permissions\": {\"view\": [\"admin\", \"user\"], \"edit\": [\"admin\"]}, \"multivalued\": false}], \"groups\": [{\"name\": \"user-metadata\", \"displayHeader\": \"User metadata\", \"displayDescription\": \"Attributes, which refer to user metadata\"}]}"
+          ]
+        }
+      }
+    ]
   }
 }

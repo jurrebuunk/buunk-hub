@@ -11,7 +11,7 @@ var ErrNoSession = errors.New("no such session")
 
 // User is the cached profile of someone who signed in.
 type User struct {
-	Sub, Name, Email, Locale, Picture string
+	Sub, Name, Username, Email, Locale, Picture string
 }
 
 // Roles are client roles from the ID token's resource_access claim:

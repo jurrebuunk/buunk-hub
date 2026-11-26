@@ -7,6 +7,7 @@ import (
 	"encoding/json"
 	"errors"
 	"io/fs"
+	"log/slog"
 	"net/http"
 	"path"
 	"strings"
@@ -15,6 +16,8 @@ import (
 	"github.com/jurrebuunk/buunk-hub/internal/catalogue"
 	"github.com/jurrebuunk/buunk-hub/internal/favicon"
 	"github.com/jurrebuunk/buunk-hub/internal/i18n"
+	"github.com/jurrebuunk/buunk-hub/internal/links"
+	"github.com/jurrebuunk/buunk-hub/internal/startpage"
 )
 
 // Auth is what the server needs from internal/auth.
@@ -29,10 +32,21 @@ type Favicons interface {
 	Get(ctx context.Context, siteURL string) (favicon.Icon, error)
 }
 
-// New returns the hub's handler. apps is the catalogue, frontend the built
-// web app (web.Dist()). Everything is behind sign-in except /healthz and
-// /auth/.
-func New(a Auth, apps []catalogue.App, icons Favicons, frontend fs.FS) http.Handler {
+// Deps is what the hub is made of; see main.go.
+type Deps struct {
+	Auth     Auth
+	Apps     []catalogue.App
+	Icons    Favicons
+	Pictures Pictures
+	Links    Links
+	Frontend fs.FS // the built web app (web.Dist())
+	Log      *slog.Logger
+}
+
+// New returns the hub's handler. Everything is behind sign-in except
+// /healthz, /auth/ and the profile pictures at /avatars/.
+func New(d Deps) http.Handler {
+	a := d.Auth
 	mux := http.NewServeMux()
 	// No auth: Kubernetes probes this.
 	mux.HandleFunc("GET /healthz", func(w http.ResponseWriter, _ *http.Request) {
@@ -40,11 +54,26 @@ func New(a Auth, apps []catalogue.App, icons Favicons, frontend fs.FS) http.Hand
 		w.Write([]byte("ok\n"))
 	})
 	a.Routes(mux)
+	// Public: other apps show these (the picture claim points here).
+	mux.HandleFunc("GET /avatars/{sub}/{file}", d.Pictures.Serve)
+
+	mux.Handle("GET /start", a.Require(startpage.Handler(d.Apps, func(r *http.Request, sub string) ([]links.Link, error) {
+		return d.Links.List(r.Context(), sub)
+	}, d.Log)))
+
 	mux.Handle("GET /api/me", a.Require(http.HandlerFunc(me)))
-	mux.Handle("GET /api/apps", a.Require(appsHandler(apps)))
-	mux.Handle("GET /api/apps/{id}/favicon", a.Require(faviconHandler(apps, icons)))
+	mux.Handle("GET /api/apps", a.Require(appsHandler(d.Apps)))
+	mux.Handle("GET /api/apps/{id}/favicon", a.Require(faviconHandler(d.Apps, d.Icons)))
+	api := &api{pictures: d.Pictures, links: d.Links, log: d.Log}
+	mux.Handle("POST /api/me/picture", a.Require(http.HandlerFunc(api.uploadPicture)))
+	mux.Handle("DELETE /api/me/picture", a.Require(http.HandlerFunc(api.removePicture)))
+	mux.Handle("GET /api/links", a.Require(http.HandlerFunc(api.listLinks)))
+	mux.Handle("POST /api/links", a.Require(http.HandlerFunc(api.addLink)))
+	mux.Handle("PUT /api/links/order", a.Require(http.HandlerFunc(api.reorderLinks)))
+	mux.Handle("PUT /api/links/{id}", a.Require(http.HandlerFunc(api.updateLink)))
+	mux.Handle("DELETE /api/links/{id}", a.Require(http.HandlerFunc(api.deleteLink)))
 	mux.Handle("GET /api/", a.Require(http.NotFoundHandler()))
-	mux.Handle("GET /", a.Require(spa(frontend)))
+	mux.Handle("GET /", a.Require(spa(d.Frontend)))
 	return securityHeaders(a.CheckOrigin(mux))
 }
 
@@ -52,11 +81,12 @@ func New(a Auth, apps []catalogue.App, icons Favicons, frontend fs.FS) http.Hand
 func me(w http.ResponseWriter, r *http.Request) {
 	id, _ := auth.FromContext(r.Context())
 	writeJSON(w, map[string]any{
-		"sub":     id.User.Sub,
-		"name":    id.User.Name,
-		"email":   id.User.Email,
-		"picture": id.User.Picture,
-		"lang":    i18n.Pick(id.User.Locale, r.Header.Get("Accept-Language")),
+		"sub":      id.User.Sub,
+		"name":     id.User.Name,
+		"email":    id.User.Email,
+		"username": id.User.Username,
+		"picture":  id.User.Picture,
+		"lang":     i18n.Pick(id.User.Locale, r.Header.Get("Accept-Language")),
 	})
 }
 

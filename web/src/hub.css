@@ -83,6 +83,11 @@
   padding-right: 0;
 }
 
+/* Folded, a group label is only a little gap. */
+.hub-side.is-collapsed .hub-group {
+  padding: 8px 0 0;
+}
+
 /* The square mark never shrinks. */
 .hub-brand .fw-logo-mark {
   flex: none;
