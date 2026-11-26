@@ -1,0 +1,20 @@
+# Go
+/bin/
+/hub
+*.test
+*.out
+
+# Web
+node_modules/
+web/dist/
+
+# Nix
+result
+result-*
+
+# Local
+.env
+*.local
+.DS_Store
+# Decrypted secrets never get committed
+*.dec.yaml
