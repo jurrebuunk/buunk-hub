@@ -16,6 +16,7 @@ import {
   type IconName,
 } from "@flatwork-ui/react";
 import type { App } from "./api";
+import { cloudflareOrange } from "./cloudflare";
 import type { Messages } from "./i18n";
 import { Link } from "./router";
 import type { Reach } from "./warp";
@@ -96,12 +97,12 @@ export function WarpGuide({
             <Step n={1} title={m.step1Title(cur.mobile)}>
               <p className="fw-t-body fw-t-muted">{m.step1Text}</p>
               <ButtonLink
-                variant="primary"
                 href={downloadURL}
                 target="_blank"
                 rel="noreferrer"
                 leadingIcon={<Icon name="download" />}
-                style={{ alignSelf: "flex-start" }}
+                // Cloudflare's app, in its orange; dark text keeps 6.6:1.
+                style={{ alignSelf: "flex-start", background: cloudflareOrange, borderColor: cloudflareOrange, color: "#1b1818" }}
               >
                 {m.download(cur.mobile, m.platforms[cur.id])}
               </ButtonLink>
@@ -147,7 +148,8 @@ export function WarpGuide({
                         {m.nowConnected}
                       </Badge>
                     ) : (
-                      <Badge tone="warning" dot>
+                      <Badge style={{ borderColor: cloudflareOrange }}>
+                        <span className="fw-dot" style={{ background: cloudflareOrange }} />
                         {m.stillNotConnected}
                       </Badge>
                     )}

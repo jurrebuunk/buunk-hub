@@ -1,5 +1,6 @@
-import { Badge, Card, Icon, Spinner, type IconName } from "@flatwork-ui/react";
+import { Badge, Icon, Spinner, type IconName } from "@flatwork-ui/react";
 import type { App, Me } from "./api";
+import { CloudflareLogo, cloudflareOrange, cloudflareTint } from "./cloudflare";
 import { joinNames, type Messages } from "./i18n";
 import { Link } from "./router";
 import { Picture } from "./Shell";
@@ -35,57 +36,51 @@ export function Home({ me, m, apps, reach }: { me: Me; m: Messages; apps: App[];
         </div>
       </header>
 
-      {internal.length > 0 && (
-        <Card
+      {/* Only when something needs WARP and this browser can't reach it;
+          when everything works there is nothing to say. */}
+      {internal.length > 0 && !checking && !onWarp && (
+        <section
           aria-labelledby="warp-title"
-          style={{ flexDirection: "row", flexWrap: "wrap", alignItems: "center", gap: 16, padding: "16px 20px" }}
+          className="fw-card"
+          style={{
+            flexDirection: "row",
+            flexWrap: "wrap",
+            alignItems: "center",
+            gap: 16,
+            padding: "16px 20px",
+            border: `2px dotted ${cloudflareOrange}`,
+            background: cloudflareTint,
+          }}
         >
           <span
             aria-hidden="true"
-            style={{
-              ...tile,
-              width: 48,
-              height: 48,
-              background: "var(--fw-surface-2)",
-              border: "1px solid var(--fw-border-strong)",
-              color: "var(--fw-warning)",
-            }}
+            style={{ ...tile, width: 48, height: 48, background: "var(--fw-surface)", border: `1px solid ${cloudflareOrange}` }}
           >
-            <Icon name="cloud" size={28} />
+            <CloudflareLogo size={30} />
           </span>
           <div style={{ flex: "1 1 280px", minWidth: 0, display: "flex", flexDirection: "column", gap: 2 }}>
             <div style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
               <h2 className="fw-t-heading" id="warp-title">
                 {m.warpTitle}
               </h2>
-              {checking ? (
-                <Badge>
-                  <Spinner /> {m.checking}
-                </Badge>
-              ) : onWarp ? (
-                <Badge tone="success" dot>
-                  {m.connected}
-                </Badge>
-              ) : (
-                <Badge tone="warning" dot>
-                  {m.notConnected}
-                </Badge>
-              )}
+              <Badge style={{ background: "var(--fw-surface)", borderColor: cloudflareOrange }}>
+                <span className="fw-dot" style={{ background: cloudflareOrange }} />
+                {m.notConnected}
+              </Badge>
             </div>
-            {!checking && (
-              <p className="fw-t-body fw-t-muted" aria-live="polite">
-                {onWarp ? m.onWarp : m.offWarp(joinNames(internal.map((a) => a.name), m.and))}
-              </p>
-            )}
+            <p className="fw-t-body" style={{ color: "var(--fw-text)" }}>
+              {m.offWarp(joinNames(internal.map((a) => a.name), m.and))}
+            </p>
           </div>
-          {!checking && !onWarp && (
-            <Link className="fw-btn fw-btn-secondary fw-btn-sm" href="/warp">
-              {m.howToConnect}
-              <Icon name="arrow_forward" />
-            </Link>
-          )}
-          {!checking && onWarp && <span className="fw-t-caption">{m.checkedJustNow}</span>}
-        </Card>
+          <Link
+            className="fw-btn fw-btn-sm"
+            href="/warp"
+            style={{ background: cloudflareOrange, borderColor: cloudflareOrange, color: "#1b1818", fontWeight: 500 }}
+          >
+            {m.howToConnect}
+            <Icon name="arrow_forward" />
+          </Link>
+        </section>
       )}
 
       {apps.length > 0 && (
@@ -171,7 +166,7 @@ function AppCard({ app, reach, m }: { app: App; reach: Reach; m: Messages }) {
           }}
         >
           <span className="fw-t-caption" style={{ display: "inline-flex", alignItems: "center", gap: 6 }}>
-            <Icon name={app.internal ? "vpn_lock" : "public"} size={16} />
+            {app.internal ? <CloudflareLogo /> : <Icon name="public" size={16} />}
             {app.internal ? m.internalOverWarp : m.public}
           </span>
           <span style={{ display: "inline-flex", alignItems: "center", gap: 6, color: "var(--fw-heading)", fontSize: 13, fontWeight: 500 }}>
@@ -207,9 +202,9 @@ function AppCard({ app, reach, m }: { app: App; reach: Reach; m: Messages }) {
               width: 26,
               height: 26,
               borderRadius: "50%",
-              background: "var(--fw-warning-bg)",
-              border: "1px solid var(--fw-warning-border)",
-              color: "var(--fw-warning)",
+              background: cloudflareTint,
+              border: `1px solid ${cloudflareOrange}`,
+              color: "var(--fw-heading)",
             }}
           >
             <Icon name="lock" size={15} />
@@ -220,8 +215,8 @@ function AppCard({ app, reach, m }: { app: App; reach: Reach; m: Messages }) {
             <Spinner /> {m.checking}
           </Badge>
         ) : (
-          <Badge tone="warning">
-            <Icon name="vpn_lock" size={14} />
+          <Badge style={{ borderColor: cloudflareOrange }}>
+            <CloudflareLogo size={14} />
             {m.needsWarp}
           </Badge>
         )}
@@ -243,8 +238,8 @@ function AppCard({ app, reach, m }: { app: App; reach: Reach; m: Messages }) {
         }}
       >
         <span className="fw-t-caption" style={{ display: "inline-flex", alignItems: "center", gap: 6 }}>
-          <Icon name="vpn_lock" size={16} />
-          {m.internal}
+          <CloudflareLogo />
+          {m.internalOverWarp}
         </span>
         {reach === "blocked" && (
           <Link href="/warp" style={{ fontSize: 13, fontWeight: 500 }}>

@@ -10,7 +10,8 @@
   "dependencies": {
     "@flatwork-ui/react": "0.2.0",
     "react": "19.3.1",
-    "react-dom": "19.3.1"
+    "react-dom": "19.3.1",
+    "simple-icons": "16.38.1"
   },
   "devDependencies": {
     "@types/react": "19.3.3",
