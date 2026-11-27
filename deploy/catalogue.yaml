@@ -15,6 +15,17 @@ apps:
       nl: Je bestanden, foto's en gedeelde mappen.
     roles: [cloudreve/cloudreve-user, cloudreve/cloudreve-admin]
 
+  # Cypht webmail for the Migadu mailboxes (repo hgd1-cypht), over WARP.
+  - id: mail
+    name: Mail
+    url: https://mail.buunk.org
+    icon: mail
+    description:
+      en: Your buunk.org mailbox.
+      nl: Je buunk.org-mailbox.
+    roles: [cypht/cypht-user]
+    internal: true
+
   # The test app for internal access (hgd1-k8s platform/whoami). Everyone
   # who may connect WARP sees it.
   - id: whoami
